@@ -5,6 +5,7 @@ from time import strftime
 from pathlib import Path
 import csv
 import pandas as pd
+from random import randint
 import gc
 
 serialPort = serial.Serial()
@@ -16,21 +17,27 @@ path = Path("Arquivos_CSV")
 path.mkdir(parents=True, exist_ok=True)
 with open(f"Arquivos_CSV/{arquivo}.csv", 'w', newline='') as f:
     thewriter = csv.writer(f)
-    thewriter.writerow(['tempo', 'temp_obj', 'temp_amb', 'RPM', 'VEL', 'DISTANCIA', 'ACC', 'capacitivo'])
+    thewriter.writerow(['tempo', 'temp_obj', 'temp_amb', 'RPM', 'VEL_D', 'VEL_E', 'DISTANCIA', 'ACC', 'capacitivo'])
 portList = []
 
+# TESTING
+N = 1000
 sensors = {
-    'tempo': [],
-    'temp_obj': [],
-    'temp_amb': [],
-    'RPM': [],
-    'VEL': [],
-    'DISTANCIA': [],
-    'ACC': [],
-    'capacitivo': [],
+    'tempo': [x for x in range(N)],
+    'temp_obj': [x + 30 for x in range(N)],
+    'temp_amb': [x + 3 for x in range(N)],
+    'RPM_motor': [x * 3 for x in range(N)],
+    'RPM_roda': [x * 2 for x in range(N)],
+    'VEL_D': [x + 32 for x in range(N)],
+    'VEL_E': [x + 25 for x in range(N)],
+    'DISTANCIA': [x + 15 for x in range(N)],
+    'ACC': [x + 3 for x in range(N)],
+    'capacitivo': [randint(0, 3) for _ in range(N)],
 }
 df = pd.DataFrame(sensors)
 
+
+# ======================================
 
 def update_ports():
     portList = [port.device for port in serial.tools.list_ports.comports()]
