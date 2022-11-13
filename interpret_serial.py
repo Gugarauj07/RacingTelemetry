@@ -18,7 +18,7 @@ path.mkdir(parents=True, exist_ok=True)
 with open(f"Arquivos_CSV/{arquivo}.csv", 'w', newline='') as f:
     thewriter = csv.writer(f)
     thewriter.writerow(['tempo', 'temp_obj', 'temp_amb', 'RPM', 'VEL_D', 'VEL_E', 'DISTANCIA', 'ACC', 'capacitivo'])
-portList = []
+portList = [port.device for port in serial.tools.list_ports.comports()]
 
 # TESTING
 N = 1000
@@ -38,9 +38,6 @@ df = pd.DataFrame(sensors)
 
 
 # ======================================
-
-def update_ports():
-    portList = [port.device for port in serial.tools.list_ports.comports()]
 
 
 def read_serial():
@@ -63,8 +60,6 @@ def start_thread():
 
 
 def connect_serial(self):
-    update_ports()
-
     serialPort.port = portList[0]
     serialPort.baudrate = 9600
 
