@@ -17,7 +17,7 @@ path = Path("Arquivos_CSV")
 path.mkdir(parents=True, exist_ok=True)
 with open(f"Arquivos_CSV/{arquivo}.csv", 'w', newline='') as f:
     thewriter = csv.writer(f)
-    thewriter.writerow(['tempo', 'temp_obj', 'temp_amb', 'RPM', 'VEL_D', 'VEL_E', 'DISTANCIA', 'ACC', 'capacitivo'])
+    thewriter.writerow(['tempo', 'temp_obj', 'temp_amb', 'RPM_motor', 'RPM_roda', 'capacitivo', 'VEL_E', 'VEL_D'])
 portList = [port.device for port in serial.tools.list_ports.comports()]
 
 # TESTING
@@ -29,10 +29,9 @@ sensors = {
     'RPM_motor': [x * 3 for x in range(N)],
     'RPM_roda': [x * 2 for x in range(N)],
     'VEL_D': [x + 32 for x in range(N)],
-    'VEL_E': [x + 25 for x in range(N)],
-    'DISTANCIA': [x + 15 for x in range(N)],
-    'ACC': [x + 3 for x in range(N)],
     'capacitivo': [randint(0, 3) for _ in range(N)],
+    'VEL_E': [x + 25 for x in range(N)],
+    'ACC': [x + 25 for x in range(N)],
 }
 df = pd.DataFrame(sensors)
 
