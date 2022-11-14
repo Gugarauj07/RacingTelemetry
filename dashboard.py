@@ -40,6 +40,8 @@ graph_ACC.add_trace(
     go.Scatter(x=df["tempo"], y=df["ACC"], name="acc (km/h²)", mode="lines", line=dict(color="#FF6F59")))
 graph_ACC.update_layout(yaxis_title="Aceleração", height=150, margin=dict(l=5, r=5, t=5, b=5))
 
+
+
 # =====================================================================
 # Layout
 app.layout = dbc.Container(children=[
