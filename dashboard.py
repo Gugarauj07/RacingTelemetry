@@ -40,6 +40,8 @@ graph_ACC.add_trace(
     go.Scatter(x=df["tempo"], y=df["ACC"], name="acc (km/h²)", mode="lines", line=dict(color="#FF6F59")))
 graph_ACC.update_layout(yaxis_title="Aceleração", height=150, margin=dict(l=5, r=5, t=5, b=5))
 
+# =====================================================================
+# Style
 
 
 # =====================================================================
@@ -120,7 +122,83 @@ app.layout = dbc.Container(children=[
                 ])], style={'padding-right': '0px'}, md=2)
             ], className="m-0 p-0"),
             dbc.Row([
+                dbc.Col([
+                    dbc.Row([
+                        dbc.Col([
+                            daq.Gauge(
+                                color="red",
+                                label='Velocidade',
+                                id='gauge_velocidade',
+                                value=6,
+                                size=120,
+                                max=80,
+                                min=0,
+                                style={'margin-top': '10px', 'padding-right':'0px'},
+                                theme={
+                                    'dark': True,
+                                }
+                            ),
+                        ], md=6),
+                        dbc.Col([
+                            daq.Gauge(
+                                color="red",
+                                label='Rotação',
+                                size=120,
+                                id='gauge_rpm',
+                                value=3400,
+                                max=6000,
+                                min=0,
+                                style={'margin-top': '10px', 'padding-left':'0px', 'font-size':'20px'},
+                                theme={
+                                    'dark': True,
+                                }
+                            ),
+                        ], md=6),
 
+
+                    ], class_name='d-flex', style={'height':'180px'}),
+                    dbc.Row([
+                        daq.GraduatedBar(
+                            color={"gradient": True, "ranges": {"green": [0, 4], "yellow": [4, 7], "red": [7, 10]}},
+                            showCurrentValue=True,
+                            value=10,
+                            label='Bateria',
+                            labelPosition='top',
+                            theme={
+                                'dark': True,
+                            }
+                        )
+                    ], class_name='justify-content-center')
+                ], md=6),
+
+                dbc.Col([
+                    daq.Thermometer(
+                        value=5,
+                        label='Temperatura CVT',
+                        labelPosition='top',
+                        min=0,
+                        max=100,
+                        height=160,
+                        width=10,
+                        style={'margin-top': '10px'},
+
+                    )
+                ], md=3),
+
+                dbc.Col([
+                    daq.Tank(
+                        id='tank',
+                        value=5,
+                        showCurrentValue=True,
+                        units='litros',
+                        min=0,
+                        max=10,
+                        height=190,
+                        style={'margin-top': '10px'},
+                        label='Nível do tanque',
+                        labelPosition='top',
+                    ),
+                ], md=3)
             ]),
         ], className="m-0 p-0")
     ], className="m-0 p-0")
@@ -128,6 +206,5 @@ app.layout = dbc.Container(children=[
 
 # =====================================================================
 # Interactivity
-
 if __name__ == '__main__':
     app.run_server()
