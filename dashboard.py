@@ -40,9 +40,6 @@ graph_ACC.add_trace(
     go.Scatter(x=df["tempo"], y=df["ACC"], name="acc (km/h²)", mode="lines", line=dict(color="#FF6F59")))
 graph_ACC.update_layout(yaxis_title="Aceleração", height=150, margin=dict(l=5, r=5, t=5, b=5))
 
-# =====================================================================
-# Style
-
 
 # =====================================================================
 # Layout
@@ -126,7 +123,7 @@ app.layout = dbc.Container(children=[
                     dbc.Row([
                         dbc.Col([
                             daq.Gauge(
-                                color="red",
+                                color={"gradient": True, "ranges": {"#F6BDC0": [0, 25], "#F07470": [25, 50], "#DC1C13": [50, 80]}},
                                 label='Velocidade',
                                 id='gauge_velocidade',
                                 value=6,
@@ -141,7 +138,7 @@ app.layout = dbc.Container(children=[
                         ], md=6),
                         dbc.Col([
                             daq.Gauge(
-                                color="red",
+                                color={"gradient": True, "ranges": {"#F6BDC0": [0, 2000], "#F07470": [2000, 4000], "#DC1C13": [4000, 6000]}},
                                 label='Rotação',
                                 size=120,
                                 id='gauge_rpm',
@@ -159,7 +156,7 @@ app.layout = dbc.Container(children=[
                     ], class_name='d-flex', style={'height':'180px'}),
                     dbc.Row([
                         daq.GraduatedBar(
-                            color={"gradient": True, "ranges": {"green": [0, 4], "yellow": [4, 7], "red": [7, 10]}},
+                            color={"gradient": True, "ranges": {"red": [0, 2], "yellow": [2, 5], "green": [5, 10]}},
                             showCurrentValue=True,
                             value=10,
                             label='Bateria',
@@ -173,7 +170,7 @@ app.layout = dbc.Container(children=[
 
                 dbc.Col([
                     daq.Thermometer(
-                        value=5,
+                        value=35,
                         label='Temperatura CVT',
                         labelPosition='top',
                         min=0,
@@ -181,7 +178,7 @@ app.layout = dbc.Container(children=[
                         height=160,
                         width=10,
                         style={'margin-top': '10px'},
-
+                        color='#FF6C00'
                     )
                 ], md=3),
 
@@ -197,12 +194,13 @@ app.layout = dbc.Container(children=[
                         style={'margin-top': '10px'},
                         label='Nível do tanque',
                         labelPosition='top',
+                        color='#00FFFF'
                     ),
                 ], md=3)
             ]),
         ], className="m-0 p-0")
     ], className="m-0 p-0")
-], className="", fluid=True)
+], fluid=True)
 
 # =====================================================================
 # Interactivity
