@@ -14,6 +14,7 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG],
                             'content': 'width=device-width, initial-scale=1.0'}]
                 )
 
+df_map = pd.read_csv("map.csv")
 # =====================================================================
 # Gráficos
 
@@ -49,8 +50,8 @@ graph_laps.update_layout(yaxis_title="Lap Times", margin=dict(l=5, r=5, t=5, b=5
 
 graph_map = go.Figure(layout={"template": "plotly_dark"})
 graph_map.add_trace(
-    go.Bar(x=df["tempo"], y=df["ACC"], name="acc (km/h²)"))
-graph_map.update_layout(yaxis_title="Lap Time", margin=dict(l=5, r=5, t=5, b=5), autosize=True, height=150)
+    go.Scatter(x=df_map["latitude"], y=df_map["longitude"], name="location"))
+graph_map.update_layout(yaxis_title="Map", margin=dict(l=5, r=5, t=5, b=5), autosize=False, height=388, width=600)
 # =====================================================================
 # Layout
 app.layout = dbc.Container(children=[
@@ -256,10 +257,14 @@ app.layout = dbc.Container(children=[
                         ]),
 
                     ], style={'margin': '8px', 'margin-bottom': '0px'}),
-                ], md=3),
+                ], md=3, class_name='ms-0 me-0'),
                 dbc.Col([
+                    dcc.Graph(
+                                    id='graph_map',
+                                    figure=graph_map,
+                                ),
 
-                ])
+                ], class_name='mt-2')
             ])
         ], className="m-0 p-0 h-100")
     ], className="m-0 p-0")
