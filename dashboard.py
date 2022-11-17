@@ -24,7 +24,8 @@ graph_temperature.add_trace(
     go.Scatter(x=df["tempo"], y=df["temp_obj"], name="temp_obj", mode="lines", line=dict(color="#F6511D")))
 graph_temperature.add_trace(
     go.Scatter(x=df["tempo"], y=df["temp_amb"], name="temp_amb", mode="lines", line=dict(color="#FFB400")))
-graph_temperature.update_layout(yaxis_title="Temperatura CVT", margin=dict(l=5, r=5, t=5, b=5), autosize=True, height=150)
+graph_temperature.update_layout(yaxis_title="Temperatura CVT", margin=dict(l=5, r=5, t=5, b=5), autosize=True,
+                                height=150)
 
 graph_velocidade = go.Figure(layout={"template": "plotly_dark"})
 graph_velocidade.add_trace(
@@ -68,7 +69,7 @@ app.layout = dbc.Container(children=[
             dcc.Dropdown(portList, id='ports-dropdown', value='portList[0]', placeholder='COM Ports',
                          style={'width': '150px'}),
             dbc.Button('Connect', id='connect-button', style={'width': '150px'}),
-        ], class_name='d-flex p-3 align-items-center justify-content-evenly'),
+        ], class_name='d-flex p-3 align-items-center justify-content-evenly', id='connect-div'),
     ]),
 
     dbc.Row([
@@ -260,18 +261,37 @@ app.layout = dbc.Container(children=[
                 ], md=3, class_name='ms-0 me-0'),
                 dbc.Col([
                     dcc.Graph(
-                                    id='graph_map',
-                                    figure=graph_map,
-                                ),
+                        id='graph_map',
+                        figure=graph_map,
+                    ),
 
                 ], class_name='mt-2')
             ])
         ], className="m-0 p-0 h-100")
     ], className="m-0 p-0")
 ], fluid=True, class_name="mh-100")
+
+
 # =====================================================================
 # Callbacks
+
+# Connect button callback
+@app.callback(
+    Output('connect-div', 'children'),
+    Input('connect-button', 'n_clicks')
+)
+def callback_function(n_clicks):
+    if n_clicks > 0:
+        return [
+            dbc.Button('Marcar volta!', id='lap-button', style={'width': '200px'}, color='warning'),
+            dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
+        ]
+
+# Update Graphs callback
+
+
+
 # =====================================================================
 # Interactivity
 if __name__ == '__main__':
-    app.run_server()
+    app.run_server(host="0.0.0.0", port="8050")
