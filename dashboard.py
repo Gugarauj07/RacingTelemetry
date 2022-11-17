@@ -269,7 +269,8 @@ app.layout = dbc.Container(children=[
         ], className="m-0 p-0 h-100")
     ], className="m-0 p-0")
 ], fluid=True, class_name="mh-100")
-
+# =====================================================================
+# Callbacks
 # =====================================================================
 # Interactivity
 if __name__ == '__main__':

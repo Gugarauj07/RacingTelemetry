@@ -39,12 +39,10 @@ sensors = {
 }
 df = pd.DataFrame(sensors)
 
-df_laps = pd.DataFrame(columns=['lap_time', 'Vel_med', 'Acc_med', 'Distance'])
-
 
 # ======================================
 def read_serial():
-    global VEL
+    VEL, counter_laps, tempo_inicio = 0, 0, 0
     while alive.is_set() and serialPort.is_open:
         VEL_anterior = VEL
         tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, button = serialPort.readline().decode("utf-8").split(',')
@@ -54,9 +52,15 @@ def read_serial():
         line = [tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, button, ACC, RPMroda, Distancia]
         df.loc[len(df)] = line
 
-        if button == 1:
-            lap_time = df['tempo']
-            df_laps.loc[len(df_laps)] = []
+        df_tempo = df.loc[df["tempo"] == tempo_inicio:df["tempo"] == tempo, ["tempo", "ACC", "VEL", "Distancia"]]
+        acc_avg = df_tempo["ACC"].mean()
+        vel_avg = df_tempo["VEL"].mean()
+        distancia_lap = df_tempo["Distancia"].head(1) - df_tempo["Distancia"].tail(1)
+        tempo_percorrido = df_tempo["tempo"].head(1) - df_tempo["tempo"].tail(1)
+
+        if button != counter_laps:
+            tempo_inicio = tempo
+            counter_laps = button
 
         with open(f"Arquivos_CSV/{arquivo}.csv", 'a+', newline='') as f:
             thewriter = csv.writer(f)
