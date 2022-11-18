@@ -304,22 +304,28 @@ def callback_function(n_clicks):
 
 # Update Graphs callback
 @app.callback(
-    [
+
         Output('graph_temperature', 'figure'),
         # Output('graph_velocidade', 'figure'),
         # Output('graph_RPM', 'figure'),
         # Output('graph_ACC', 'figure'),
         # Output('graph_laps', 'figure'),
-    ],
     Input('interval-component', 'n_intervals')
 )
-def update_graphs(num):
-    if num == 0:
+def update_graphs(n):
+    if n == 0:
         raise PreventUpdate
     else:
-        graph_temperature = {
+        read_serial(n)
+        graph_temperature = go.Figure(layout={"template": "plotly_dark"})
+        graph_temperature.add_trace(
+            go.Scatter(x=df["tempo"], y=df["temp_obj"].tail(50), name="temp_obj", mode="lines", line=dict(color="#F6511D")))
+        graph_temperature.add_trace(
+            go.Scatter(x=df["tempo"], y=df["temp_amb"].tail(50), name="temp_amb", mode="lines", line=dict(color="#FFB400")))
+        graph_temperature.update_layout(yaxis_title="Temperatura CVT", margin=dict(l=5, r=5, t=5, b=5), autosize=True,
+                                        height=150)
+        return graph_temperature
 
-        }
 
 
 # =====================================================================

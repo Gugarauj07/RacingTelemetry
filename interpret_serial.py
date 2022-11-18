@@ -56,18 +56,18 @@ def read_serial(n):
     Distancia = VEL / 3.6  # Metros
     ACC = VEL - VEL_anterior
     RPMroda = VEL / ((18 / 60) * 0.04625 * 1.72161199 * 3.6)
-    line = [tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, button, ACC, RPMroda, Distancia]
-
-    df["tempo"] = tempo
-    df["temp_obj"] = temp_obj
-    df["temp_amb"] = temp_amb
-    df["RPM"] = RPM
-    df["VEL"] = VEL
-    df["capacitivo"] = capacitivo
-    df["button"] = button
-    df["ACC"] = ACC
-    df["RPMroda"] = RPMroda
-    df["Distancia"] = Distancia
+    line = [tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, button, ACC, RPMroda, Distancia, 0]
+    df.loc[len(df)] = line
+    # df["tempo"] = tempo
+    # df["temp_obj"] = temp_obj
+    # df["temp_amb"] = temp_amb
+    # df["RPM"] = RPM
+    # df["VEL"] = VEL
+    # df["capacitivo"] = capacitivo
+    # df["button"] = button
+    # df["ACC"] = ACC
+    # df["RPMroda"] = RPMroda
+    # df["Distancia"] = Distancia
 
     # df_tempo = df.loc[df["tempo"] == tempo_inicio:df["tempo"] == tempo]
     # acc_avg = df_tempo["ACC"].mean()
