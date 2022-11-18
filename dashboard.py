@@ -6,8 +6,10 @@ import plotly.graph_objects as go
 import plotly.express as px
 import numpy as np
 import pandas as pd
-from interpret_serial import df, portList
+from interpret_serial import df, portList, read_serial
+
 from dash.dependencies import Input, Output, ClientsideFunction
+from dash.exceptions import PreventUpdate
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG],
                 meta_tags=[{'name': 'viewport',
@@ -53,9 +55,15 @@ graph_map = go.Figure(layout={"template": "plotly_dark"})
 graph_map.add_trace(
     go.Scatter(x=df_map["latitude"], y=df_map["longitude"], name="location"))
 graph_map.update_layout(yaxis_title="Map", margin=dict(l=5, r=5, t=5, b=5), autosize=False, height=388, width=600)
+
 # =====================================================================
 # Layout
 app.layout = dbc.Container(children=[
+    dcc.Interval(
+        id='interval-component',
+        interval=1 * 500,
+        n_intervals=0
+    ),
     dbc.Row([
         dbc.Col([
             html.Div(children=[
@@ -76,24 +84,30 @@ app.layout = dbc.Container(children=[
         dbc.Col([
             dcc.Graph(
                 id='graph_temperature',
-                figure=graph_temperature,
-                className='h-20'
+                # figure=graph_temperature,
+                animate=True
             ),
             dcc.Graph(
                 id='graph_velocidade',
-                figure=graph_velocidade
+                figure=graph_velocidade,
+                animate=True
             ),
             dcc.Graph(
                 id='graph_PRM',
-                figure=graph_PRM
+                figure=graph_PRM,
+                animate=True
             ),
             dcc.Graph(
                 id='graph_ACC',
-                figure=graph_ACC
+                figure=graph_ACC,
+                animate=True
+
             ),
             dcc.Graph(
                 id='graph_laps',
                 figure=graph_laps,
+                animate=True
+
             ),
 
         ], className="m-0 p-0 mh-100"),
@@ -287,8 +301,25 @@ def callback_function(n_clicks):
             dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
         ]
 
-# Update Graphs callback
 
+# Update Graphs callback
+@app.callback(
+    [
+        Output('graph_temperature', 'figure'),
+        # Output('graph_velocidade', 'figure'),
+        # Output('graph_RPM', 'figure'),
+        # Output('graph_ACC', 'figure'),
+        # Output('graph_laps', 'figure'),
+    ],
+    Input('interval-component', 'n_intervals')
+)
+def update_graphs(num):
+    if num == 0:
+        raise PreventUpdate
+    else:
+        graph_temperature = {
+
+        }
 
 
 # =====================================================================

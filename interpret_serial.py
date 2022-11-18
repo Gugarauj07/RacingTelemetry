@@ -5,12 +5,11 @@ from time import strftime
 from pathlib import Path
 import csv
 import pandas as pd
-from random import randint
 import gc
+from random import randrange
 
 serialPort = serial.Serial()
 serialPort.timeout = 0.5
-alive = Event()
 
 arquivo = strftime("%d.%m.%Y_%Hh%M")
 path = Path("Arquivos_CSV")
@@ -25,55 +24,66 @@ portList = [port.device for port in serial.tools.list_ports.comports()]
 # TESTING
 N = 100
 sensors = {
-    'tempo': [x for x in range(N)],
-    'temp_obj': [x + 30 for x in range(N)],
-    'temp_amb': [x + 3 for x in range(N)],
-    'RPM_motor': [x * 3 for x in range(N)],
-    'VEL_E': [x + 32 for x in range(N)],
-    'capacitivo': [x for x in range(N)],
-    'button_lap': [x for x in range(N)],
-    'ACC': [x for x in range(N)],
-    'RPM_roda': [x * 4 for x in range(N)],
-    'Distancia': [x + 200 for x in range(N)],
-    'VEL_D': [x + 50 for x in range(N)],
+    'tempo': [],
+    'temp_obj': [],
+    'temp_amb': [],
+    'RPM_motor': [],
+    'VEL_E': [],
+    'capacitivo': [],
+    'button_lap': [],
+    'ACC': [],
+    'RPM_roda': [],
+    'Distancia': [],
+    'VEL_D': [],
 }
 df = pd.DataFrame(sensors)
 
 
 # ======================================
-def read_serial():
+def read_serial(n):
     VEL, counter_laps, tempo_inicio = 0, 0, 0
-    while alive.is_set() and serialPort.is_open:
-        VEL_anterior = VEL
-        tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, button = serialPort.readline().decode("utf-8").split(',')
-        Distancia = VEL / 3.6  # Metros
-        ACC = VEL - VEL_anterior
-        RPMroda = VEL / ((18 / 60) * 0.04625 * 1.72161199 * 3.6)
-        line = [tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, button, ACC, RPMroda, Distancia]
-        df.loc[len(df)] = line
 
-        df_tempo = df.loc[df["tempo"] == tempo_inicio:df["tempo"] == tempo, ["tempo", "ACC", "VEL", "Distancia"]]
-        acc_avg = df_tempo["ACC"].mean()
-        vel_avg = df_tempo["VEL"].mean()
-        distancia_lap = df_tempo["Distancia"].head(1) - df_tempo["Distancia"].tail(1)
-        tempo_percorrido = df_tempo["tempo"].head(1) - df_tempo["tempo"].tail(1)
+    tempo = n
+    temp_obj = randrange(40, 60)
+    temp_amb = randrange(50, 60)
+    RPM = randrange(600, 800)
+    VEL = randrange(20, 30)
+    capacitivo = randrange(0, 3)
+    button = randrange(0, 3)
 
-        if button != counter_laps:
-            tempo_inicio = tempo
-            counter_laps = button
+    VEL_anterior = VEL
+    # tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, button = serialPort.readline().decode("utf-8").split(',')
+    Distancia = VEL / 3.6  # Metros
+    ACC = VEL - VEL_anterior
+    RPMroda = VEL / ((18 / 60) * 0.04625 * 1.72161199 * 3.6)
+    line = [tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, button, ACC, RPMroda, Distancia]
 
-        with open(f"Arquivos_CSV/{arquivo}.csv", 'a+', newline='') as f:
-            thewriter = csv.writer(f)
-            thewriter.writerow(line)
+    df["tempo"] = tempo
+    df["temp_obj"] = temp_obj
+    df["temp_amb"] = temp_amb
+    df["RPM"] = RPM
+    df["VEL"] = VEL
+    df["capacitivo"] = capacitivo
+    df["button"] = button
+    df["ACC"] = ACC
+    df["RPMroda"] = RPMroda
+    df["Distancia"] = Distancia
 
-        gc.collect()
+    # df_tempo = df.loc[df["tempo"] == tempo_inicio:df["tempo"] == tempo]
+    # acc_avg = df_tempo["ACC"].mean()
+    # vel_avg = df_tempo["VEL"].mean()
+    # distancia_lap = df_tempo["Distancia"].head(1) - df_tempo["Distancia"].tail(1)
+    # tempo_percorrido = df_tempo["tempo"].head(1) - df_tempo["tempo"].tail(1)
+    #
+    # if button != counter_laps:
+    #     tempo_inicio = tempo
+    #     counter_laps = button
 
+    with open(f"Arquivos_CSV/{arquivo}.csv", 'a+', newline='') as f:
+        thewriter = csv.writer(f)
+        thewriter.writerow(line)
 
-def start_thread():
-    thread = Thread(target=read_serial)
-    thread.daemon = True
-    alive.set()
-    thread.start()
+    gc.collect()
 
 
 def connect_serial(self):
@@ -84,6 +94,3 @@ def connect_serial(self):
         serialPort.open()  # Tenta abrir a porta serial
     except:
         print("ERROR SERIAL")
-
-    if serialPort.is_open:
-        start_thread()
