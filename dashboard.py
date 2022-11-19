@@ -10,6 +10,10 @@ import pandas as pd
 from interpret_serial import df, portList, read_serial
 from dash.dependencies import Input, Output, ClientsideFunction
 from dash.exceptions import PreventUpdate
+from win32api import GetSystemMetrics
+
+screen_height = GetSystemMetrics(1)
+print(screen_height)
 
 io.templates.default = 'plotly_dark'
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG],
@@ -19,41 +23,12 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG],
 
 df_map = pd.read_csv("map.csv")
 
-
-
 # =====================================================================
 # Gráficos
 
-# # graph_temperature = px.line(df, x="tempo", y=['temp_obj', 'temp_amb'], color='variable', title='Temperatura CVT' )
-# graph_temperature = go.Figure(layout={"template": "plotly_dark"})
-# graph_temperature.add_trace(
-#     go.Scatter(x=df["tempo"], y=df["temp_obj"], name="temp_obj", mode="lines", line=dict(color="#F6511D")))
-# graph_temperature.add_trace(
-#     go.Scatter(x=df["tempo"], y=df["temp_amb"], name="temp_amb", mode="lines", line=dict(color="#FFB400")))
-# graph_temperature.update_layout(yaxis_title="Temperatura CVT", margin=dict(l=5, r=5, t=5, b=5), autosize=True,
-#                                 height=150)
-
-# graph_velocidade = go.Figure(layout={"template": "plotly_dark"})
-# graph_velocidade.add_trace(
-#     go.Scatter(x=df["tempo"], y=df["VEL_D"], name="Roda Direita", mode="lines", line=dict(color="#F72585")))
-# graph_velocidade.add_trace(
-#     go.Scatter(x=df["tempo"], y=df["VEL_E"], name="Roda Esquerda", mode="lines", line=dict(color="#7209B7")))
-# graph_velocidade.update_layout(yaxis_title="Velocidade", margin=dict(l=5, r=5, t=5, b=5), autosize=True, height=150)
-
-graph_PRM = go.Figure(layout={"template": "plotly_dark"})
-graph_PRM.add_trace(
-    go.Scatter(x=df["tempo"], y=df["RPM_motor"], name="Motor", mode="lines", line=dict(color="#26C485")))
-graph_PRM.add_trace(go.Scatter(x=df["tempo"], y=df["RPM_roda"], name="Roda", mode="lines", line=dict(color="#A3E7FC")))
-graph_PRM.update_layout(yaxis_title="Rotação", margin=dict(l=5, r=5, t=5, b=5), autosize=True, height=150)
-
-graph_ACC = go.Figure(layout={"template": "plotly_dark"})
-graph_ACC.add_trace(
-    go.Scatter(x=df["tempo"], y=df["ACC"], name="acc (km/h²)", mode="lines", line=dict(color="#FF6F59")))
-graph_ACC.update_layout(yaxis_title="Aceleração", margin=dict(l=5, r=5, t=5, b=5), autosize=True, height=150)
-
-graph_laps = go.Figure(layout={"template": "plotly_dark"})
-graph_laps.add_trace(go.Bar(x=df["tempo"], y=df["ACC"]))
-graph_laps.update_layout(yaxis_title="Lap Times", margin=dict(l=5, r=5, t=5, b=5), autosize=True, height=170)
+# graph_laps = go.Figure(layout={"template": "plotly_dark"})
+# graph_laps.add_trace(go.Bar(x=df["tempo"], y=df["ACC"]))
+# graph_laps.update_layout(yaxis_title="Lap Times", margin=dict(l=5, r=5, t=5, b=5), autosize=True, height=170)
 
 graph_map = go.Figure(layout={"template": "plotly_dark"})
 graph_map.add_trace(
@@ -92,16 +67,22 @@ app.layout = dbc.Container(children=[
             ),
             dcc.Graph(
                 id='graph_velocidade',
+                responsive='auto',
+
             ),
             dcc.Graph(
-                id='graph_PRM',
+                id='graph_RPM',
+                responsive='auto',
+
             ),
             dcc.Graph(
                 id='graph_ACC',
+                responsive='auto',
 
             ),
             dcc.Graph(
                 id='graph_laps',
+                responsive='auto',
 
             ),
 
@@ -302,9 +283,9 @@ def callback_function(n_clicks):
 @app.callback(
     Output('graph_temperature', 'figure'),
     Output('graph_velocidade', 'figure'),
-    #Output('graph_RPM', 'figure'),
-    # Output('graph_ACC', 'figure'),
-    # Output('graph_laps', 'figure'),
+    Output('graph_RPM', 'figure'),
+    Output('graph_ACC', 'figure'),
+    Output('graph_laps', 'figure'),
     Input('interval-component', 'n_intervals'),
     prevent_initial_call=True
 )
@@ -335,7 +316,7 @@ def update_graphs(n):
                 "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
                 "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Temperatura CVT"),
                 "autosize": True,
-                "height": 180,
+                "height": screen_height / 7,
                 "margin": dict(l=40, r=5, t=5, b=20),
                 "template": 'plotly_dark',
                 "font": {"color": "white"},
@@ -364,7 +345,7 @@ def update_graphs(n):
                 "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
                 "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Velocidade"),
                 "autosize": True,
-                "height": 180,
+                "height": screen_height / 7,
                 "margin": dict(l=40, r=5, t=5, b=20),
                 "template": 'plotly_dark',
                 "font": {"color": "white"},
@@ -372,8 +353,81 @@ def update_graphs(n):
                 "plot_bgcolor": "rgb(10,10,10)"
             }
         }
+        graph_RPM = {
+            'data': [
+                {
+                    'line': {'color': '#26C485'},
+                    'mode': 'lines',
+                    'type': 'scatter',
+                    'name': 'Roda',
+                    'y': df['RPM_roda'].tail(50)
+                },
+                {
+                    'line': {'color': '#A3E7FC'},
+                    'mode': 'lines',
+                    'name': 'Motor',
+                    'type': 'scatter',
+                    'y': df['RPM_motor'].tail(50)
+                }
+            ],
+            "layout": {
+                "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
+                "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Rotação"),
+                "autosize": True,
+                "height": screen_height / 7,
+                "margin": dict(l=40, r=5, t=5, b=20),
+                "template": 'plotly_dark',
+                "font": {"color": "white"},
+                "paper_bgcolor": "rgb(10,10,10)",
+                "plot_bgcolor": "rgb(10,10,10)"
+            }
+        }
+        graph_ACC = {
+            'data': [
+                {
+                    'line': {'color': '#26C485'},
+                    'mode': 'lines',
+                    'type': 'scatter',
+                    'name': 'ACC',
+                    'y': df['ACC'].tail(50)
+                }
+            ],
+            "layout": {
+                "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
+                "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Aceleração"),
+                "autosize": True,
+                "height": screen_height / 7,
+                "margin": dict(l=40, r=5, t=5, b=20),
+                "template": 'plotly_dark',
+                "font": {"color": "white"},
+                "paper_bgcolor": "rgb(10,10,10)",
+                "plot_bgcolor": "rgb(10,10,10)"
+            }
+        }
+        graph_laps = {
+                    'data': [
+                        {
+                            'line': {'color': '#26C485'},
+                            'mode': 'lines',
+                            'type': 'bar',
+                            'name': 'laps',
+                            'y': df['ACC'].tail(50)
+                        }
+                    ],
+                    "layout": {
+                        "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
+                        "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Tempo de voltas"),
+                        "autosize": True,
+                        "height": screen_height * 2 / 9,
+                        "margin": dict(l=40, r=5, t=5, b=20),
+                        "template": 'plotly_dark',
+                        "font": {"color": "white"},
+                        "paper_bgcolor": "rgb(10,10,10)",
+                        "plot_bgcolor": "rgb(10,10,10)"
+                    }
+                }
 
-    return graph_temperature, graph_velocidade
+    return graph_temperature, graph_velocidade, graph_RPM, graph_ACC, graph_laps
 
 
 # =====================================================================

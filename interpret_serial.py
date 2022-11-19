@@ -42,7 +42,7 @@ df = pd.DataFrame(sensors)
 # ======================================
 def read_serial(n):
     VEL, counter_laps, tempo_inicio = 0, 0, 0
-
+    VEL_anterior = VEL
     tempo = n
     temp_obj = randrange(40, 60)
     temp_amb = randrange(50, 60)
@@ -51,9 +51,8 @@ def read_serial(n):
     capacitivo = randrange(0, 3)
     button = randrange(0, 3)
 
-    VEL_anterior = VEL
     # tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, button = serialPort.readline().decode("utf-8").split(',')
-    Distancia = VEL / 3.6  # Metros
+    Distancia = df["Distancia"].tail(1) + VEL / 3.6  # Metros
     ACC = VEL - VEL_anterior
     RPMroda = VEL / ((18 / 60) * 0.04625 * 1.72161199 * 3.6)
     line = [tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, button, ACC, RPMroda, Distancia, 0]
