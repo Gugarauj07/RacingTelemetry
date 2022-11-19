@@ -104,7 +104,7 @@ app.layout = dbc.Container(children=[
                 dbc.Col([dbc.Card([
                     dbc.CardBody([
                         html.H6("Aceleração", className="card-text text-center"),
-                        html.H5("0", style={"color": "#EFE322", "text-align": "center"}, id="aceleração-text"),
+                        html.H5("0", style={"color": "#EFE322", "text-align": "center"}, id="aceleracao-text"),
                     ], className="m-0 p-0")
                 ])], style={'padding-right': '0px'}, md=2),
                 dbc.Col([dbc.Card([
@@ -122,7 +122,7 @@ app.layout = dbc.Container(children=[
                 dbc.Col([dbc.Card([
                     dbc.CardBody([
                         html.H6("Temperatura", className="card-text text-center"),
-                        html.H5("0", style={"color": "#EFE322", "text-align": "center"}, id="tempo-text"),
+                        html.H5("0", style={"color": "#EFE322", "text-align": "center"}, id="temp-text"),
                     ], className="m-0 p-0")
                 ])], style={'padding-right': '0px'}, md=2)
             ], className="m-0 p-0 mh-100"),
@@ -287,6 +287,13 @@ def callback_function(n_clicks):
     Output('graph_ACC', 'figure'),
     Output('graph_laps', 'figure'),
     Output('velocidade-text', 'children'),
+    Output('rpm-text', 'children'),
+    Output('aceleracao-text', 'children'),
+    Output('distancia-text', 'children'),
+    Output('tanque-text', 'children'),
+    Output('temp-text', 'children'),
+    Output('gauge_velocidade', 'value'),
+    Output('gauge_rpm', 'value'),
     Input('interval-component', 'n_intervals'),
     prevent_initial_call=True
 )
@@ -406,30 +413,47 @@ def update_graphs(n):
             }
         }
         graph_laps = {
-                    'data': [
-                        {
-                            'line': {'color': '#26C485'},
-                            'mode': 'lines',
-                            'type': 'bar',
-                            'name': 'laps',
-                            'y': df['ACC'].tail(50)
-                        }
-                    ],
-                    "layout": {
-                        "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
-                        "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Tempo de voltas"),
-                        "autosize": True,
-                        "height": screen_height * 2 / 9,
-                        "margin": dict(l=40, r=5, t=5, b=20),
-                        "template": 'plotly_dark',
-                        "font": {"color": "white"},
-                        "paper_bgcolor": "rgb(10,10,10)",
-                        "plot_bgcolor": "rgb(10,10,10)"
-                    }
+            'data': [
+                {
+                    'line': {'color': '#26C485'},
+                    'mode': 'lines',
+                    'type': 'bar',
+                    'name': 'laps',
+                    'y': df['ACC'].tail(50)
                 }
+            ],
+            "layout": {
+                "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
+                "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Tempo de voltas"),
+                "autosize": True,
+                "height": screen_height * 2 / 9,
+                "margin": dict(l=40, r=5, t=5, b=20),
+                "template": 'plotly_dark',
+                "font": {"color": "white"},
+                "paper_bgcolor": "rgb(10,10,10)",
+                "plot_bgcolor": "rgb(10,10,10)"
+            }
+        }
         velocidade_text = df["VEL_E"].tail(1)
         rpm_text = df["RPM_motor"].tail(1)
-    return graph_temperature, graph_velocidade, graph_RPM, graph_ACC, graph_laps, velocidade_text
+        aceleracao_text = df["ACC"].tail(1)
+        distancia_text = df["Distancia"].tail(1)
+        capacitivo = df["capacitivo"].tail(1)
+
+        if int(capacitivo) == 0:
+            tanque_text = 'Baixo'
+        elif int(capacitivo) == 1:
+            tanque_text = 'Médio'
+        else:
+            tanque_text = 'Alto'
+
+        temp_text = df["temp_obj"].tail(1)
+
+        vel_gauge = float(velocidade_text)
+        rpm_gauge = float(rpm_text)
+
+    return graph_temperature, graph_velocidade, graph_RPM, graph_ACC, graph_laps, velocidade_text, rpm_text, \
+           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge
 
 
 # =====================================================================
