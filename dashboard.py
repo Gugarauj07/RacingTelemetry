@@ -3,17 +3,14 @@ from dash import html, dcc
 import dash_daq as daq
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
-import plotly.express as px
-import numpy as np
 import plotly.io as io
 import pandas as pd
 from interpret_serial import df, portList, read_serial
-from dash.dependencies import Input, Output, ClientsideFunction
+from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from win32api import GetSystemMetrics
 
 screen_height = GetSystemMetrics(1)
-print(screen_height)
 
 io.templates.default = 'plotly_dark'
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG],
@@ -40,9 +37,10 @@ graph_map.update_layout(yaxis_title="Map", margin=dict(l=5, r=5, t=5, b=5), auto
 app.layout = dbc.Container(children=[
     dcc.Interval(
         id='interval-component',
-        interval=400,
+        interval=100,
         n_intervals=0
     ),
+    dcc.Store(id="current-data"),
     dbc.Row([
         dbc.Col([
             html.Div(children=[
@@ -188,6 +186,7 @@ app.layout = dbc.Container(children=[
                         width=10,
                         style={'margin-top': '10px'},
                         color='#FF6C00',
+                        id='thermoter'
                     )
                 ], md=2, class_name='p-0'),
 
@@ -198,7 +197,7 @@ app.layout = dbc.Container(children=[
                         showCurrentValue=True,
                         units='litros',
                         min=0,
-                        max=10,
+                        max=3.8,
                         height=250,
                         style={'margin-top': '10px'},
                         label='Nível do tanque',
@@ -279,6 +278,23 @@ def callback_function(n_clicks):
         ]
 
 
+# Lap Button callback
+@app.callback(
+    Output('current-data', 'data'),
+    Input('lap-button', 'n_clicks'),
+    State('current-data', 'data'),
+    prevent_initial_call=True
+)
+def lap_callback(n_clicks, data):
+    if n_clicks is None:
+        raise PreventUpdate
+
+    data = data or {'clicks': 0}
+
+    data['clicks'] = data['clicks'] + 1
+    return data
+
+
 # Update Graphs callback
 @app.callback(
     Output('graph_temperature', 'figure'),
@@ -294,6 +310,8 @@ def callback_function(n_clicks):
     Output('temp-text', 'children'),
     Output('gauge_velocidade', 'value'),
     Output('gauge_rpm', 'value'),
+    Output('thermoter', 'value'),
+    Output('tank', 'value'),
     Input('interval-component', 'n_intervals'),
     prevent_initial_call=True
 )
@@ -439,21 +457,24 @@ def update_graphs(n):
         aceleracao_text = df["ACC"].tail(1)
         distancia_text = df["Distancia"].tail(1)
         capacitivo = df["capacitivo"].tail(1)
+        temp_text = df["temp_obj"].tail(1)
 
         if int(capacitivo) == 0:
             tanque_text = 'Baixo'
+            tank_daq = 1
         elif int(capacitivo) == 1:
             tanque_text = 'Médio'
+            tank_daq = 2
         else:
             tanque_text = 'Alto'
-
-        temp_text = df["temp_obj"].tail(1)
+            tank_daq = 3.5
 
         vel_gauge = float(velocidade_text)
         rpm_gauge = float(rpm_text)
+        temp = float(temp_text)
 
     return graph_temperature, graph_velocidade, graph_RPM, graph_ACC, graph_laps, velocidade_text, rpm_text, \
-           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge
+           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq
 
 
 # =====================================================================

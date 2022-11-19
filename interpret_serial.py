@@ -38,37 +38,25 @@ sensors = {
 }
 df = pd.DataFrame(sensors)
 
-
+# VEL, counter_laps, tempo_inicio = 0, 0, 0
 
 
 # ======================================
+local_lap_count = 0
 def read_serial(n):
-    VEL, counter_laps, tempo_inicio = 0, 0, 0
-    VEL_anterior = VEL
     tempo = n
     temp_obj = randrange(40, 60)
     temp_amb = randrange(50, 60)
     RPM = randrange(600, 800)
     VEL = randrange(20, 30)
     capacitivo = randrange(0, 3)
-    button = randrange(0, 3)
-
+    button = 0
     # tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, button = serialPort.readline().decode("utf-8").split(',')
-    Distancia = round(VEL / 3.6)  # Metros
-    ACC = VEL - VEL_anterior
+    Distancia = round(VEL / 3.6 + float(df["Distancia"].tail(1)), 2)  # Metros
+    ACC = round(VEL - float(df["VEL_E"].tail(1)), 2)
     RPMroda = VEL / ((18 / 60) * 0.04625 * 1.72161199 * 3.6)
     line = [tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, button, ACC, RPMroda, Distancia, 0]
     df.loc[len(df)] = line
-    # df["tempo"] = tempo
-    # df["temp_obj"] = temp_obj
-    # df["temp_amb"] = temp_amb
-    # df["RPM"] = RPM
-    # df["VEL"] = VEL
-    # df["capacitivo"] = capacitivo
-    # df["button"] = button
-    # df["ACC"] = ACC
-    # df["RPMroda"] = RPMroda
-    # df["Distancia"] = Distancia
 
     # df_tempo = df.loc[df["tempo"] == tempo_inicio:df["tempo"] == tempo]
     # acc_avg = df_tempo["ACC"].mean()
