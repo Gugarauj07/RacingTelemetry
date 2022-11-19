@@ -5,18 +5,22 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import plotly.express as px
 import numpy as np
+import plotly.io as io
 import pandas as pd
 from interpret_serial import df, portList, read_serial
-
 from dash.dependencies import Input, Output, ClientsideFunction
 from dash.exceptions import PreventUpdate
 
+io.templates.default = 'plotly_dark'
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG],
                 meta_tags=[{'name': 'viewport',
                             'content': 'width=device-width, initial-scale=1.0'}]
                 )
 
 df_map = pd.read_csv("map.csv")
+
+
+
 # =====================================================================
 # Gráficos
 
@@ -324,18 +328,18 @@ def update_graphs(n):
                 'y': df['temp_amb'].tail(50)
             }
         ],
-        'layout': {
-            "template": "ggplot2",
+        "layout": {
             "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
             "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Temperatura CVT"),
             "autosize": True,
             "height": 180,
             "margin": dict(l=40, r=5, t=5, b=20),
-
+            "template": 'plotly_dark',
+            "font": {"color": "white"},
+            "paper_bgcolor": "rgb(10,10,10)",
+            "plot_bgcolor": "rgb(10,10,10)"
         }
-
     }
-
     return graph_temperatura
 
 
