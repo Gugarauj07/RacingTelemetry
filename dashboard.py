@@ -20,14 +20,14 @@ df_map = pd.read_csv("map.csv")
 # =====================================================================
 # Gráficos
 
-# graph_temperature = px.line(df, x="tempo", y=['temp_obj', 'temp_amb'], color='variable', title='Temperatura CVT' )
-graph_temperature = go.Figure(layout={"template": "plotly_dark"})
-graph_temperature.add_trace(
-    go.Scatter(x=df["tempo"], y=df["temp_obj"], name="temp_obj", mode="lines", line=dict(color="#F6511D")))
-graph_temperature.add_trace(
-    go.Scatter(x=df["tempo"], y=df["temp_amb"], name="temp_amb", mode="lines", line=dict(color="#FFB400")))
-graph_temperature.update_layout(yaxis_title="Temperatura CVT", margin=dict(l=5, r=5, t=5, b=5), autosize=True,
-                                height=150)
+# # graph_temperature = px.line(df, x="tempo", y=['temp_obj', 'temp_amb'], color='variable', title='Temperatura CVT' )
+# graph_temperature = go.Figure(layout={"template": "plotly_dark"})
+# graph_temperature.add_trace(
+#     go.Scatter(x=df["tempo"], y=df["temp_obj"], name="temp_obj", mode="lines", line=dict(color="#F6511D")))
+# graph_temperature.add_trace(
+#     go.Scatter(x=df["tempo"], y=df["temp_amb"], name="temp_amb", mode="lines", line=dict(color="#FFB400")))
+# graph_temperature.update_layout(yaxis_title="Temperatura CVT", margin=dict(l=5, r=5, t=5, b=5), autosize=True,
+#                                 height=150)
 
 graph_velocidade = go.Figure(layout={"template": "plotly_dark"})
 graph_velocidade.add_trace(
@@ -84,29 +84,20 @@ app.layout = dbc.Container(children=[
         dbc.Col([
             dcc.Graph(
                 id='graph_temperature',
-                # figure=graph_temperature,
-                animate=True
+                responsive='auto',
             ),
             dcc.Graph(
                 id='graph_velocidade',
-                figure=graph_velocidade,
-                animate=True
             ),
             dcc.Graph(
                 id='graph_PRM',
-                figure=graph_PRM,
-                animate=True
             ),
             dcc.Graph(
                 id='graph_ACC',
-                figure=graph_ACC,
-                animate=True
 
             ),
             dcc.Graph(
                 id='graph_laps',
-                figure=graph_laps,
-                animate=True
 
             ),
 
@@ -292,7 +283,8 @@ app.layout = dbc.Container(children=[
 # Connect button callback
 @app.callback(
     Output('connect-div', 'children'),
-    Input('connect-button', 'n_clicks')
+    Input('connect-button', 'n_clicks'),
+    prevent_initial_call=True
 )
 def callback_function(n_clicks):
     if n_clicks > 0:
@@ -305,27 +297,46 @@ def callback_function(n_clicks):
 # Update Graphs callback
 @app.callback(
 
-        Output('graph_temperature', 'figure'),
-        # Output('graph_velocidade', 'figure'),
-        # Output('graph_RPM', 'figure'),
-        # Output('graph_ACC', 'figure'),
-        # Output('graph_laps', 'figure'),
+    Output('graph_temperature', 'figure'),
+    # Output('graph_velocidade', 'figure'),
+    # Output('graph_RPM', 'figure'),
+    # Output('graph_ACC', 'figure'),
+    # Output('graph_laps', 'figure'),
     Input('interval-component', 'n_intervals')
 )
 def update_graphs(n):
-    if n == 0:
-        raise PreventUpdate
-    else:
-        read_serial(n)
-        graph_temperature = go.Figure(layout={"template": "plotly_dark"})
-        graph_temperature.add_trace(
-            go.Scatter(x=df["tempo"], y=df["temp_obj"].tail(50), name="temp_obj", mode="lines", line=dict(color="#F6511D")))
-        graph_temperature.add_trace(
-            go.Scatter(x=df["tempo"], y=df["temp_amb"].tail(50), name="temp_amb", mode="lines", line=dict(color="#FFB400")))
-        graph_temperature.update_layout(yaxis_title="Temperatura CVT", margin=dict(l=5, r=5, t=5, b=5), autosize=True,
-                                        height=150)
-        return graph_temperature
+    read_serial(n)
 
+    graph_temperatura = {
+        'data': [
+            {
+                'line': {'color': '#F6511D'},
+                'mode': 'lines',
+                'type': 'scatter',
+                'name': 'temp_obj',
+                'y': df['temp_obj'].tail(50)
+            },
+            {
+                'line': {'color': '#FFB400'},
+                'mode': 'lines',
+                'name': 'temp_amb',
+                'type': 'scatter',
+                'y': df['temp_amb'].tail(50)
+            }
+        ],
+        'layout': {
+            "template": "ggplot2",
+            "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
+            "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Temperatura CVT"),
+            "autosize": True,
+            "height": 180,
+            "margin": dict(l=40, r=5, t=5, b=20),
+
+        }
+
+    }
+
+    return graph_temperatura
 
 
 # =====================================================================
