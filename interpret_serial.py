@@ -24,17 +24,17 @@ portList = [port.device for port in serial.tools.list_ports.comports()]
 # TESTING
 N = 100
 sensors = {
-    'tempo': [],
-    'temp_obj': [],
-    'temp_amb': [],
-    'RPM_motor': [],
-    'VEL_E': [],
-    'capacitivo': [],
-    'button_lap': [],
-    'ACC': [],
-    'RPM_roda': [],
-    'Distancia': [],
-    'VEL_D': [],
+    'tempo': [0],
+    'temp_obj': [0],
+    'temp_amb': [0],
+    'RPM_motor': [0],
+    'VEL_E': [0],
+    'capacitivo': [0],
+    'button_lap': [0],
+    'ACC': [0],
+    'RPM_roda': [0],
+    'Distancia': [0],
+    'VEL_D': [0],
 }
 df = pd.DataFrame(sensors)
 

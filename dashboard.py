@@ -33,12 +33,12 @@ df_map = pd.read_csv("map.csv")
 # graph_temperature.update_layout(yaxis_title="Temperatura CVT", margin=dict(l=5, r=5, t=5, b=5), autosize=True,
 #                                 height=150)
 
-graph_velocidade = go.Figure(layout={"template": "plotly_dark"})
-graph_velocidade.add_trace(
-    go.Scatter(x=df["tempo"], y=df["VEL_D"], name="Roda Direita", mode="lines", line=dict(color="#F72585")))
-graph_velocidade.add_trace(
-    go.Scatter(x=df["tempo"], y=df["VEL_E"], name="Roda Esquerda", mode="lines", line=dict(color="#7209B7")))
-graph_velocidade.update_layout(yaxis_title="Velocidade", margin=dict(l=5, r=5, t=5, b=5), autosize=True, height=150)
+# graph_velocidade = go.Figure(layout={"template": "plotly_dark"})
+# graph_velocidade.add_trace(
+#     go.Scatter(x=df["tempo"], y=df["VEL_D"], name="Roda Direita", mode="lines", line=dict(color="#F72585")))
+# graph_velocidade.add_trace(
+#     go.Scatter(x=df["tempo"], y=df["VEL_E"], name="Roda Esquerda", mode="lines", line=dict(color="#7209B7")))
+# graph_velocidade.update_layout(yaxis_title="Velocidade", margin=dict(l=5, r=5, t=5, b=5), autosize=True, height=150)
 
 graph_PRM = go.Figure(layout={"template": "plotly_dark"})
 graph_PRM.add_trace(
@@ -65,7 +65,7 @@ graph_map.update_layout(yaxis_title="Map", margin=dict(l=5, r=5, t=5, b=5), auto
 app.layout = dbc.Container(children=[
     dcc.Interval(
         id='interval-component',
-        interval=1 * 500,
+        interval=400,
         n_intervals=0
     ),
     dbc.Row([
@@ -300,47 +300,80 @@ def callback_function(n_clicks):
 
 # Update Graphs callback
 @app.callback(
-
     Output('graph_temperature', 'figure'),
-    # Output('graph_velocidade', 'figure'),
-    # Output('graph_RPM', 'figure'),
+    Output('graph_velocidade', 'figure'),
+    #Output('graph_RPM', 'figure'),
     # Output('graph_ACC', 'figure'),
     # Output('graph_laps', 'figure'),
-    Input('interval-component', 'n_intervals')
+    Input('interval-component', 'n_intervals'),
+    prevent_initial_call=True
 )
 def update_graphs(n):
-    read_serial(n)
+    if n is None:
+        raise PreventUpdate
+    else:
+        read_serial(n)
 
-    graph_temperatura = {
-        'data': [
-            {
-                'line': {'color': '#F6511D'},
-                'mode': 'lines',
-                'type': 'scatter',
-                'name': 'temp_obj',
-                'y': df['temp_obj'].tail(50)
-            },
-            {
-                'line': {'color': '#FFB400'},
-                'mode': 'lines',
-                'name': 'temp_amb',
-                'type': 'scatter',
-                'y': df['temp_amb'].tail(50)
+        graph_temperature = {
+            'data': [
+                {
+                    'line': {'color': '#F6511D'},
+                    'mode': 'lines',
+                    'type': 'scatter',
+                    'name': 'temp_obj',
+                    'y': df['temp_obj'].tail(50)
+                },
+                {
+                    'line': {'color': '#FFB400'},
+                    'mode': 'lines',
+                    'name': 'temp_amb',
+                    'type': 'scatter',
+                    'y': df['temp_amb'].tail(50)
+                }
+            ],
+            "layout": {
+                "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
+                "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Temperatura CVT"),
+                "autosize": True,
+                "height": 180,
+                "margin": dict(l=40, r=5, t=5, b=20),
+                "template": 'plotly_dark',
+                "font": {"color": "white"},
+                "paper_bgcolor": "rgb(10,10,10)",
+                "plot_bgcolor": "rgb(10,10,10)"
             }
-        ],
-        "layout": {
-            "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
-            "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Temperatura CVT"),
-            "autosize": True,
-            "height": 180,
-            "margin": dict(l=40, r=5, t=5, b=20),
-            "template": 'plotly_dark',
-            "font": {"color": "white"},
-            "paper_bgcolor": "rgb(10,10,10)",
-            "plot_bgcolor": "rgb(10,10,10)"
         }
-    }
-    return graph_temperatura
+        graph_velocidade = {
+            'data': [
+                {
+                    'line': {'color': '#F72585'},
+                    'mode': 'lines',
+                    'type': 'scatter',
+                    'name': 'Roda Esquerda',
+                    'y': df['VEL_E'].tail(50)
+                },
+                {
+                    'line': {'color': '#7209B7'},
+                    'mode': 'lines',
+                    'name': 'Roda Direita',
+                    'type': 'scatter',
+                    'y': df['VEL_D'].tail(50)
+                }
+            ],
+            "layout": {
+                "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
+                "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Velocidade"),
+                "autosize": True,
+                "height": 180,
+                "margin": dict(l=40, r=5, t=5, b=20),
+                "template": 'plotly_dark',
+                "font": {"color": "white"},
+                "paper_bgcolor": "rgb(10,10,10)",
+                "plot_bgcolor": "rgb(10,10,10)"
+            }
+        }
+
+    return graph_temperature, graph_velocidade
 
 
 # =====================================================================
