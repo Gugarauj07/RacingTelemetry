@@ -286,6 +286,7 @@ def callback_function(n_clicks):
     Output('graph_RPM', 'figure'),
     Output('graph_ACC', 'figure'),
     Output('graph_laps', 'figure'),
+    Output('velocidade-text', 'children'),
     Input('interval-component', 'n_intervals'),
     prevent_initial_call=True
 )
@@ -426,8 +427,9 @@ def update_graphs(n):
                         "plot_bgcolor": "rgb(10,10,10)"
                     }
                 }
-
-    return graph_temperature, graph_velocidade, graph_RPM, graph_ACC, graph_laps
+        velocidade_text = df["VEL_E"].tail(1)
+        rpm_text = df["RPM_motor"].tail(1)
+    return graph_temperature, graph_velocidade, graph_RPM, graph_ACC, graph_laps, velocidade_text
 
 
 # =====================================================================
