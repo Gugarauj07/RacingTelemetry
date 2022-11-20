@@ -5,11 +5,19 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import plotly.io as io
 import pandas as pd
-from interpret_serial import df, portList, read_serial
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from win32api import GetSystemMetrics
+import serial
+import serial.tools.list_ports
+from time import strftime
+from pathlib import Path
+import csv
+import gc
+from random import randrange
 
+# =====================================================================
+# Configurações iniciais
 screen_height = GetSystemMetrics(1)
 
 io.templates.default = 'plotly_dark'
@@ -20,6 +28,34 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG],
 
 df_map = pd.read_csv("map.csv")
 
+serialPort = serial.Serial()
+serialPort.timeout = 0.5
+
+arquivo = strftime("%d.%m.%Y_%Hh%M")
+path = Path("Arquivos_CSV")
+path.mkdir(parents=True, exist_ok=True)
+with open(f"Arquivos_CSV/{arquivo}.csv", 'w', newline='') as f:
+    thewriter = csv.writer(f)
+    thewriter.writerow(
+        ['tempo', 'temp_obj', 'temp_amb', 'RPM_motor', 'RPM_roda', 'capacitivo', 'VEL_D', 'VEL_E', 'ACC', 'Distancia',
+         'button_lap'])
+portList = [port.device for port in serial.tools.list_ports.comports()]
+
+# TESTING
+N = 100
+sensors = {
+    'tempo': [0],
+    'temp_obj': [0],
+    'temp_amb': [0],
+    'RPM_motor': [0],
+    'VEL_E': [0],
+    'capacitivo': [0],
+    'ACC': [0],
+    'RPM_roda': [0],
+    'Distancia': [0],
+    'VEL_D': [0],
+}
+df = pd.DataFrame(sensors)
 # =====================================================================
 # Gráficos
 
@@ -40,7 +76,7 @@ app.layout = dbc.Container(children=[
         interval=100,
         n_intervals=0
     ),
-    dcc.Store(id="current-data"),
+    dcc.Store(id="current-data", storage_type='session'),
     dbc.Row([
         dbc.Col([
             html.Div(children=[
@@ -215,7 +251,8 @@ app.layout = dbc.Container(children=[
                                 value="1:34.421",
                                 size=18,
                                 labelPosition='top',
-                                backgroundColor="#060606"
+                                backgroundColor="#060606",
+                                id='display_tempo'
                             ),
                         ]),
                         dbc.ListGroupItem([
@@ -224,7 +261,9 @@ app.layout = dbc.Container(children=[
                                 value="55.42",
                                 size=18,
                                 labelPosition='top',
-                                backgroundColor="#060606"
+                                backgroundColor="#060606",
+                                id='display_vel'
+
                             ),
                         ]),
                         dbc.ListGroupItem([
@@ -234,6 +273,7 @@ app.layout = dbc.Container(children=[
                                 size=18,
                                 labelPosition='top',
                                 backgroundColor="#060606",
+                                id='display_acc'
                             ),
                         ]),
                         dbc.ListGroupItem([
@@ -243,6 +283,7 @@ app.layout = dbc.Container(children=[
                                 size=18,
                                 labelPosition='top',
                                 backgroundColor="#060606",
+                                id='display_distancia'
                             ),
                         ]),
 
@@ -288,10 +329,10 @@ def callback_function(n_clicks):
 def lap_callback(n_clicks, data):
     if n_clicks is None:
         raise PreventUpdate
-
-    data = data or {'clicks': 0}
-
+    data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0}
     data['clicks'] = data['clicks'] + 1
+    data['tempo_inicio'] = data['tempo']
+    print(data)
     return data
 
 
@@ -312,14 +353,49 @@ def lap_callback(n_clicks, data):
     Output('gauge_rpm', 'value'),
     Output('thermoter', 'value'),
     Output('tank', 'value'),
+    Output('display_tempo', 'value'),
+    Output('display_vel', 'value'),
+    Output('display_acc', 'value'),
+    Output('display_distancia', 'value'),
+    Output('current-data', 'data'),
     Input('interval-component', 'n_intervals'),
+    State('current-data', 'data'),
     prevent_initial_call=True
 )
-def update_graphs(n):
+def update_graphs(n, data):
     if n is None:
         raise PreventUpdate
     else:
-        read_serial(n)
+        data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0}
+
+        tempo = n
+        temp_obj = randrange(40, 60)
+        temp_amb = randrange(50, 60)
+        RPM = randrange(600, 800)
+        VEL = randrange(20, 30)
+        capacitivo = randrange(0, 3)
+
+        # tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, button = serialPort.readline().decode("utf-8").split(',')
+        data['tempo'] = tempo
+        Distancia = round(VEL / 3.6 + float(df["Distancia"].tail(1)), 2)  # Metros
+        ACC = round(VEL - float(df["VEL_E"].tail(1)), 2)
+        RPMroda = VEL / ((18 / 60) * 0.04625 * 1.72161199 * 3.6)
+        line = [tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, ACC, RPMroda, Distancia, 0]
+        df.loc[len(df)] = line
+
+        tempo_percorrido, acc_avg, vel_avg, distancia_lap = 0, 0, 0, 0
+        if data['tempo_inicio'] != 0:
+            df_tempo = df.loc[df["tempo"] == data['tempo_inicio']:df["tempo"] == data['tempo']]
+            acc_avg = df_tempo["ACC"].mean()
+            vel_avg = df_tempo["VEL"].mean()
+            distancia_lap = df_tempo["Distancia"].head(1) - df_tempo["Distancia"].tail(1)
+            tempo_percorrido = df_tempo["tempo"].head(1) - df_tempo["tempo"].tail(1)
+
+        with open(f"Arquivos_CSV/{arquivo}.csv", 'a+', newline='') as f:
+            thewriter = csv.writer(f)
+            thewriter.writerow(line)
+
+        gc.collect()
 
         graph_temperature = {
             'data': [
@@ -474,7 +550,8 @@ def update_graphs(n):
         temp = float(temp_text)
 
     return graph_temperature, graph_velocidade, graph_RPM, graph_ACC, graph_laps, velocidade_text, rpm_text, \
-           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq
+           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq, \
+           tempo_percorrido, vel_avg, acc_avg, distancia_lap, data
 
 
 # =====================================================================
