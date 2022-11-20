@@ -3,59 +3,79 @@ from dash import html, dcc
 import dash_daq as daq
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
-import plotly.express as px
-import numpy as np
+import plotly.io as io
 import pandas as pd
-from interpret_serial import df, portList
-from dash.dependencies import Input, Output, ClientsideFunction
+from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
+from win32api import GetSystemMetrics
+import serial
+import serial.tools.list_ports
+from time import strftime
+from pathlib import Path
+import csv
+import gc
+from random import randrange
 
+# =====================================================================
+# Configurações iniciais
+screen_height = GetSystemMetrics(1)
+
+io.templates.default = 'plotly_dark'
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG],
                 meta_tags=[{'name': 'viewport',
-                            'content': 'width=device-width, initial-scale=1.0'}]
-                )
+                            'content': 'width=device-width, initial-scale=1.0'}])
 
 df_map = pd.read_csv("map.csv")
+
+serialPort = serial.Serial()
+serialPort.timeout = 0.5
+
+arquivo = strftime("%d.%m.%Y_%Hh%M")
+path = Path("Arquivos_CSV")
+path.mkdir(parents=True, exist_ok=True)
+with open(f"Arquivos_CSV/{arquivo}.csv", 'w', newline='') as f:
+    thewriter = csv.writer(f)
+    thewriter.writerow(
+        ['tempo', 'temp_obj', 'temp_amb', 'RPM_motor', 'RPM_roda', 'capacitivo', 'VEL_D', 'VEL_E', 'ACC', 'Distancia',
+         'button_lap'])
+portList = [port.device for port in serial.tools.list_ports.comports()]
+
+# TESTING
+N = 100
+sensors = {
+    'tempo': [0],
+    'temp_obj': [0],
+    'temp_amb': [0],
+    'RPM_motor': [0],
+    'VEL_E': [0],
+    'capacitivo': [0],
+    'ACC': [0],
+    'RPM_roda': [0],
+    'Distancia': [0],
+    'VEL_D': [0],
+}
+df = pd.DataFrame(sensors)
 # =====================================================================
 # Gráficos
 
-# graph_temperature = px.line(df, x="tempo", y=['temp_obj', 'temp_amb'], color='variable', title='Temperatura CVT' )
-graph_temperature = go.Figure(layout={"template": "plotly_dark"})
-graph_temperature.add_trace(
-    go.Scatter(x=df["tempo"], y=df["temp_obj"], name="temp_obj", mode="lines", line=dict(color="#F6511D")))
-graph_temperature.add_trace(
-    go.Scatter(x=df["tempo"], y=df["temp_amb"], name="temp_amb", mode="lines", line=dict(color="#FFB400")))
-graph_temperature.update_layout(yaxis_title="Temperatura CVT", margin=dict(l=5, r=5, t=5, b=5), autosize=True,
-                                height=150)
-
-graph_velocidade = go.Figure(layout={"template": "plotly_dark"})
-graph_velocidade.add_trace(
-    go.Scatter(x=df["tempo"], y=df["VEL_D"], name="Roda Direita", mode="lines", line=dict(color="#F72585")))
-graph_velocidade.add_trace(
-    go.Scatter(x=df["tempo"], y=df["VEL_E"], name="Roda Esquerda", mode="lines", line=dict(color="#7209B7")))
-graph_velocidade.update_layout(yaxis_title="Velocidade", margin=dict(l=5, r=5, t=5, b=5), autosize=True, height=150)
-
-graph_PRM = go.Figure(layout={"template": "plotly_dark"})
-graph_PRM.add_trace(
-    go.Scatter(x=df["tempo"], y=df["RPM_motor"], name="Motor", mode="lines", line=dict(color="#26C485")))
-graph_PRM.add_trace(go.Scatter(x=df["tempo"], y=df["RPM_roda"], name="Roda", mode="lines", line=dict(color="#A3E7FC")))
-graph_PRM.update_layout(yaxis_title="Rotação", margin=dict(l=5, r=5, t=5, b=5), autosize=True, height=150)
-
-graph_ACC = go.Figure(layout={"template": "plotly_dark"})
-graph_ACC.add_trace(
-    go.Scatter(x=df["tempo"], y=df["ACC"], name="acc (km/h²)", mode="lines", line=dict(color="#FF6F59")))
-graph_ACC.update_layout(yaxis_title="Aceleração", margin=dict(l=5, r=5, t=5, b=5), autosize=True, height=150)
-
-graph_laps = go.Figure(layout={"template": "plotly_dark"})
-graph_laps.add_trace(go.Bar(x=df["tempo"], y=df["ACC"]))
-graph_laps.update_layout(yaxis_title="Lap Times", margin=dict(l=5, r=5, t=5, b=5), autosize=True, height=170)
+# graph_laps = go.Figure(layout={"template": "plotly_dark"})
+# graph_laps.add_trace(go.Bar(x=df["tempo"], y=df["ACC"]))
+# graph_laps.update_layout(yaxis_title="Lap Times", margin=dict(l=5, r=5, t=5, b=5), autosize=True, height=170)
 
 graph_map = go.Figure(layout={"template": "plotly_dark"})
 graph_map.add_trace(
     go.Scatter(x=df_map["latitude"], y=df_map["longitude"], name="location"))
 graph_map.update_layout(yaxis_title="Map", margin=dict(l=5, r=5, t=5, b=5), autosize=False, height=388, width=600)
+
 # =====================================================================
 # Layout
 app.layout = dbc.Container(children=[
+    dcc.Interval(
+        id='interval-component',
+        interval=500,
+        n_intervals=0
+    ),
+    dcc.Store(id="current-data", storage_type='session'),
     dbc.Row([
         dbc.Col([
             html.Div(children=[
@@ -76,24 +96,27 @@ app.layout = dbc.Container(children=[
         dbc.Col([
             dcc.Graph(
                 id='graph_temperature',
-                figure=graph_temperature,
-                className='h-20'
+                responsive='auto',
             ),
             dcc.Graph(
                 id='graph_velocidade',
-                figure=graph_velocidade
+                responsive='auto',
+
             ),
             dcc.Graph(
-                id='graph_PRM',
-                figure=graph_PRM
+                id='graph_RPM',
+                responsive='auto',
+
             ),
             dcc.Graph(
                 id='graph_ACC',
-                figure=graph_ACC
+                responsive='auto',
+
             ),
             dcc.Graph(
                 id='graph_laps',
-                figure=graph_laps,
+                responsive='auto',
+
             ),
 
         ], className="m-0 p-0 mh-100"),
@@ -114,7 +137,7 @@ app.layout = dbc.Container(children=[
                 dbc.Col([dbc.Card([
                     dbc.CardBody([
                         html.H6("Aceleração", className="card-text text-center"),
-                        html.H5("0", style={"color": "#EFE322", "text-align": "center"}, id="aceleração-text"),
+                        html.H5("0", style={"color": "#EFE322", "text-align": "center"}, id="aceleracao-text"),
                     ], className="m-0 p-0")
                 ])], style={'padding-right': '0px'}, md=2),
                 dbc.Col([dbc.Card([
@@ -132,7 +155,7 @@ app.layout = dbc.Container(children=[
                 dbc.Col([dbc.Card([
                     dbc.CardBody([
                         html.H6("Temperatura", className="card-text text-center"),
-                        html.H5("0", style={"color": "#EFE322", "text-align": "center"}, id="tempo-text"),
+                        html.H5("0", style={"color": "#EFE322", "text-align": "center"}, id="temp-text"),
                     ], className="m-0 p-0")
                 ])], style={'padding-right': '0px'}, md=2)
             ], className="m-0 p-0 mh-100"),
@@ -198,6 +221,7 @@ app.layout = dbc.Container(children=[
                         width=10,
                         style={'margin-top': '10px'},
                         color='#FF6C00',
+                        id='thermoter'
                     )
                 ], md=2, class_name='p-0'),
 
@@ -208,7 +232,7 @@ app.layout = dbc.Container(children=[
                         showCurrentValue=True,
                         units='litros',
                         min=0,
-                        max=10,
+                        max=3.8,
                         height=250,
                         style={'margin-top': '10px'},
                         label='Nível do tanque',
@@ -226,7 +250,8 @@ app.layout = dbc.Container(children=[
                                 value="1:34.421",
                                 size=18,
                                 labelPosition='top',
-                                backgroundColor="#060606"
+                                backgroundColor="#060606",
+                                id='display_tempo'
                             ),
                         ]),
                         dbc.ListGroupItem([
@@ -235,7 +260,9 @@ app.layout = dbc.Container(children=[
                                 value="55.42",
                                 size=18,
                                 labelPosition='top',
-                                backgroundColor="#060606"
+                                backgroundColor="#060606",
+                                id='display_vel'
+
                             ),
                         ]),
                         dbc.ListGroupItem([
@@ -245,6 +272,7 @@ app.layout = dbc.Container(children=[
                                 size=18,
                                 labelPosition='top',
                                 backgroundColor="#060606",
+                                id='display_acc'
                             ),
                         ]),
                         dbc.ListGroupItem([
@@ -254,6 +282,7 @@ app.layout = dbc.Container(children=[
                                 size=18,
                                 labelPosition='top',
                                 backgroundColor="#060606",
+                                id='display_distancia'
                             ),
                         ]),
 
@@ -278,7 +307,8 @@ app.layout = dbc.Container(children=[
 # Connect button callback
 @app.callback(
     Output('connect-div', 'children'),
-    Input('connect-button', 'n_clicks')
+    Input('connect-button', 'n_clicks'),
+    prevent_initial_call=True
 )
 def callback_function(n_clicks):
     if n_clicks > 0:
@@ -287,8 +317,240 @@ def callback_function(n_clicks):
             dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
         ]
 
-# Update Graphs callback
 
+# Lap Button callback
+@app.callback(
+    Output('current-data', 'data'),
+    Input('lap-button', 'n_clicks'),
+    State('current-data', 'data'),
+    prevent_initial_call=True
+)
+def lap_callback(n_clicks, data):
+    if n_clicks is None:
+        raise PreventUpdate
+    data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0}
+    data['clicks'] = data['clicks'] + 1
+    data['tempo_inicio'] = data['tempo']
+    print(data)
+    return data
+
+
+# Update Graphs callback
+@app.callback(
+    Output('graph_temperature', 'figure'),
+    Output('graph_velocidade', 'figure'),
+    Output('graph_RPM', 'figure'),
+    Output('graph_ACC', 'figure'),
+    Output('graph_laps', 'figure'),
+    Output('velocidade-text', 'children'),
+    Output('rpm-text', 'children'),
+    Output('aceleracao-text', 'children'),
+    Output('distancia-text', 'children'),
+    Output('tanque-text', 'children'),
+    Output('temp-text', 'children'),
+    Output('gauge_velocidade', 'value'),
+    Output('gauge_rpm', 'value'),
+    Output('thermoter', 'value'),
+    Output('tank', 'value'),
+    # Output('display_tempo', 'value'),
+    # Output('display_vel', 'value'),
+    # Output('display_acc', 'value'),
+    # Output('display_distancia', 'value'),
+    # Output('current-data', 'data'),
+    Input('interval-component', 'n_intervals'),
+    State('current-data', 'data'),
+    prevent_initial_call=True
+)
+def update_graphs(n, data):
+    if n is None:
+        raise PreventUpdate
+    else:
+        data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0}
+
+        tempo = n
+        temp_obj = randrange(40, 60)
+        temp_amb = randrange(50, 60)
+        RPM = randrange(600, 800)
+        VEL = randrange(20, 30)
+        capacitivo = randrange(0, 3)
+
+        # tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, button = serialPort.readline().decode("utf-8").split(',')
+        data['tempo'] = tempo
+        Distancia = round(VEL / 3.6 + float(df["Distancia"].tail(1)), 2)  # Metros
+        ACC = round(VEL - float(df["VEL_E"].tail(1)), 2)
+        RPMroda = VEL / ((18 / 60) * 0.04625 * 1.72161199 * 3.6)
+        line = [tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, ACC, RPMroda, Distancia, 0]
+        df.loc[len(df)] = line
+        print(data)
+        tempo_percorrido, acc_avg, vel_avg, distancia_lap = 0, 0, 0, 0
+        if data['tempo_inicio'] != 0:
+            df_tempo = df.loc[df["tempo"] == data['tempo_inicio']:df["tempo"] == data['tempo']]
+            acc_avg = df_tempo["ACC"].mean()
+            vel_avg = df_tempo["VEL"].mean()
+            distancia_lap = df_tempo["Distancia"].head(1) - df_tempo["Distancia"].tail(1)
+            tempo_percorrido = df_tempo["tempo"].head(1) - df_tempo["tempo"].tail(1)
+
+        with open(f"Arquivos_CSV/{arquivo}.csv", 'a+', newline='') as f:
+            thewriter = csv.writer(f)
+            thewriter.writerow(line)
+
+        gc.collect()
+
+        graph_temperature = {
+            'data': [
+                {
+                    'line': {'color': '#F6511D'},
+                    'mode': 'lines',
+                    'type': 'scatter',
+                    'name': 'temp_obj',
+                    'y': df['temp_obj'].tail(50)
+                },
+                {
+                    'line': {'color': '#FFB400'},
+                    'mode': 'lines',
+                    'name': 'temp_amb',
+                    'type': 'scatter',
+                    'y': df['temp_amb'].tail(50)
+                }
+            ],
+            "layout": {
+                "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
+                "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Temperatura CVT"),
+                "autosize": True,
+                "height": screen_height / 7,
+                "margin": dict(l=40, r=5, t=5, b=20),
+                "template": 'plotly_dark',
+                "font": {"color": "white"},
+                "paper_bgcolor": "rgb(10,10,10)",
+                "plot_bgcolor": "rgb(10,10,10)"
+            }
+        }
+        graph_velocidade = {
+            'data': [
+                {
+                    'line': {'color': '#F72585'},
+                    'mode': 'lines',
+                    'type': 'scatter',
+                    'name': 'Roda Esquerda',
+                    'y': df['VEL_E'].tail(50)
+                },
+                {
+                    'line': {'color': '#7209B7'},
+                    'mode': 'lines',
+                    'name': 'Roda Direita',
+                    'type': 'scatter',
+                    'y': df['VEL_D'].tail(50)
+                }
+            ],
+            "layout": {
+                "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
+                "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Velocidade"),
+                "autosize": True,
+                "height": screen_height / 7,
+                "margin": dict(l=40, r=5, t=5, b=20),
+                "template": 'plotly_dark',
+                "font": {"color": "white"},
+                "paper_bgcolor": "rgb(10,10,10)",
+                "plot_bgcolor": "rgb(10,10,10)"
+            }
+        }
+        graph_RPM = {
+            'data': [
+                {
+                    'line': {'color': '#26C485'},
+                    'mode': 'lines',
+                    'type': 'scatter',
+                    'name': 'Roda',
+                    'y': df['RPM_roda'].tail(50)
+                },
+                {
+                    'line': {'color': '#A3E7FC'},
+                    'mode': 'lines',
+                    'name': 'Motor',
+                    'type': 'scatter',
+                    'y': df['RPM_motor'].tail(50)
+                }
+            ],
+            "layout": {
+                "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
+                "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Rotação"),
+                "autosize": True,
+                "height": screen_height / 7,
+                "margin": dict(l=40, r=5, t=5, b=20),
+                "template": 'plotly_dark',
+                "font": {"color": "white"},
+                "paper_bgcolor": "rgb(10,10,10)",
+                "plot_bgcolor": "rgb(10,10,10)"
+            }
+        }
+        graph_ACC = {
+            'data': [
+                {
+                    'line': {'color': '#26C485'},
+                    'mode': 'lines',
+                    'type': 'scatter',
+                    'name': 'ACC',
+                    'y': df['ACC'].tail(50)
+                }
+            ],
+            "layout": {
+                "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
+                "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Aceleração"),
+                "autosize": True,
+                "height": screen_height / 7,
+                "margin": dict(l=40, r=5, t=5, b=20),
+                "template": 'plotly_dark',
+                "font": {"color": "white"},
+                "paper_bgcolor": "rgb(10,10,10)",
+                "plot_bgcolor": "rgb(10,10,10)"
+            }
+        }
+        graph_laps = {
+            'data': [
+                {
+                    'line': {'color': '#26C485'},
+                    'mode': 'lines',
+                    'type': 'bar',
+                    'name': 'laps',
+                    'y': df['ACC'].tail(50)
+                }
+            ],
+            "layout": {
+                "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
+                "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Tempo de voltas"),
+                "autosize": True,
+                "height": screen_height * 2 / 9,
+                "margin": dict(l=40, r=5, t=5, b=20),
+                "template": 'plotly_dark',
+                "font": {"color": "white"},
+                "paper_bgcolor": "rgb(10,10,10)",
+                "plot_bgcolor": "rgb(10,10,10)"
+            }
+        }
+        velocidade_text = df["VEL_E"].tail(1)
+        rpm_text = df["RPM_motor"].tail(1)
+        aceleracao_text = df["ACC"].tail(1)
+        distancia_text = df["Distancia"].tail(1)
+        capacitivo = df["capacitivo"].tail(1)
+        temp_text = df["temp_obj"].tail(1)
+
+        if int(capacitivo) == 0:
+            tanque_text = 'Baixo'
+            tank_daq = 1
+        elif int(capacitivo) == 1:
+            tanque_text = 'Médio'
+            tank_daq = 2
+        else:
+            tanque_text = 'Alto'
+            tank_daq = 3.5
+
+        vel_gauge = float(velocidade_text)
+        rpm_gauge = float(rpm_text)
+        temp = float(temp_text)
+
+    return graph_temperature, graph_velocidade, graph_RPM, graph_ACC, graph_laps, velocidade_text, rpm_text, \
+           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq
+           #tempo_percorrido, vel_avg, acc_avg, distancia_lap,, data
 
 
 # =====================================================================
