@@ -316,15 +316,16 @@ app.layout = dbc.Container(children=[
 def callback_function(n_clicks):
     if n_clicks > 0:
         return [
-            dbc.Button('Marcar volta!', id='lap-button', style={'width': '200px'}, color='warning'),
+            dbc.Button('Iniciar volta!', id='inicio-button', style={'width': '200px'}, color='success'),
             dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
         ]
 
 
 # Lap Button callback
 @app.callback(
+    Output('connect-div', 'children'),
     Output('current-data', 'data'),
-    Input('lap-button', 'n_clicks'),
+    Input('inicio-button', 'n_clicks'),
     State('current-data', 'data'),
     prevent_initial_call=True
 )
@@ -335,7 +336,10 @@ def lap_callback(n_clicks, data):
     data['clicks'] = data['clicks'] + 1
     data['tempo_inicio'] = data['tempo']
     print(data)
-    return data
+    return [
+            dbc.Button('Finalizar volta!', id='final-button', style={'width': '200px'}, color='warning'),
+            dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
+        ], data
 
 
 # Update Graphs callback
