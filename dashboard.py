@@ -5,7 +5,7 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import plotly.io as io
 import pandas as pd
-from dash.dependencies import Input, Output, State
+from dash_extensions.enrich import DashProxy, MultiplexerTransform, Input, Output, State
 from dash.exceptions import PreventUpdate
 from win32api import GetSystemMetrics
 import serial
@@ -20,10 +20,13 @@ from random import randrange
 # Configurações iniciais
 screen_height = GetSystemMetrics(1)
 
-io.templates.default = 'plotly_dark'
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG],
-                meta_tags=[{'name': 'viewport',
-                            'content': 'width=device-width, initial-scale=1.0'}])
+app = DashProxy(
+    prevent_initial_callbacks=True,
+    suppress_callback_exceptions=True,
+    external_stylesheets=[dbc.themes.CYBORG],
+    meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
+    transforms=[MultiplexerTransform()]
+)
 
 df_map = pd.read_csv("map.csv")
 
@@ -356,7 +359,7 @@ def lap_callback(n_clicks, data):
     # Output('display_vel', 'value'),
     # Output('display_acc', 'value'),
     # Output('display_distancia', 'value'),
-    # Output('current-data', 'data'),
+    Output('current-data', 'data'),
     Input('interval-component', 'n_intervals'),
     State('current-data', 'data'),
     prevent_initial_call=True
@@ -383,12 +386,12 @@ def update_graphs(n, data):
         df.loc[len(df)] = line
         print(data)
         tempo_percorrido, acc_avg, vel_avg, distancia_lap = 0, 0, 0, 0
-        if data['tempo_inicio'] != 0:
-            df_tempo = df.loc[df["tempo"] == data['tempo_inicio']:df["tempo"] == data['tempo']]
-            acc_avg = df_tempo["ACC"].mean()
-            vel_avg = df_tempo["VEL"].mean()
-            distancia_lap = df_tempo["Distancia"].head(1) - df_tempo["Distancia"].tail(1)
-            tempo_percorrido = df_tempo["tempo"].head(1) - df_tempo["tempo"].tail(1)
+        # if data['tempo_inicio'] != 0:
+        #     df_tempo = df.loc[df["tempo"] == data['tempo_inicio']:df["tempo"] == data['tempo']]
+        #     acc_avg = df_tempo["ACC"].mean()
+        #     vel_avg = df_tempo["VEL"].mean()
+        #     distancia_lap = df_tempo["Distancia"].head(1) - df_tempo["Distancia"].tail(1)
+        #     tempo_percorrido = df_tempo["tempo"].head(1) - df_tempo["tempo"].tail(1)
 
         with open(f"Arquivos_CSV/{arquivo}.csv", 'a+', newline='') as f:
             thewriter = csv.writer(f)
@@ -549,7 +552,7 @@ def update_graphs(n, data):
         temp = float(temp_text)
 
     return graph_temperature, graph_velocidade, graph_RPM, graph_ACC, graph_laps, velocidade_text, rpm_text, \
-           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq
+           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq, data
            #tempo_percorrido, vel_avg, acc_avg, distancia_lap,, data
 
 
