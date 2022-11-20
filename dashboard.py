@@ -23,8 +23,7 @@ screen_height = GetSystemMetrics(1)
 io.templates.default = 'plotly_dark'
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG],
                 meta_tags=[{'name': 'viewport',
-                            'content': 'width=device-width, initial-scale=1.0'}]
-                )
+                            'content': 'width=device-width, initial-scale=1.0'}])
 
 df_map = pd.read_csv("map.csv")
 
@@ -73,7 +72,7 @@ graph_map.update_layout(yaxis_title="Map", margin=dict(l=5, r=5, t=5, b=5), auto
 app.layout = dbc.Container(children=[
     dcc.Interval(
         id='interval-component',
-        interval=100,
+        interval=500,
         n_intervals=0
     ),
     dcc.Store(id="current-data", storage_type='session'),
@@ -353,11 +352,11 @@ def lap_callback(n_clicks, data):
     Output('gauge_rpm', 'value'),
     Output('thermoter', 'value'),
     Output('tank', 'value'),
-    Output('display_tempo', 'value'),
-    Output('display_vel', 'value'),
-    Output('display_acc', 'value'),
-    Output('display_distancia', 'value'),
-    Output('current-data', 'data'),
+    # Output('display_tempo', 'value'),
+    # Output('display_vel', 'value'),
+    # Output('display_acc', 'value'),
+    # Output('display_distancia', 'value'),
+    # Output('current-data', 'data'),
     Input('interval-component', 'n_intervals'),
     State('current-data', 'data'),
     prevent_initial_call=True
@@ -382,7 +381,7 @@ def update_graphs(n, data):
         RPMroda = VEL / ((18 / 60) * 0.04625 * 1.72161199 * 3.6)
         line = [tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, ACC, RPMroda, Distancia, 0]
         df.loc[len(df)] = line
-
+        print(data)
         tempo_percorrido, acc_avg, vel_avg, distancia_lap = 0, 0, 0, 0
         if data['tempo_inicio'] != 0:
             df_tempo = df.loc[df["tempo"] == data['tempo_inicio']:df["tempo"] == data['tempo']]
@@ -550,8 +549,8 @@ def update_graphs(n, data):
         temp = float(temp_text)
 
     return graph_temperature, graph_velocidade, graph_RPM, graph_ACC, graph_laps, velocidade_text, rpm_text, \
-           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq, \
-           tempo_percorrido, vel_avg, acc_avg, distancia_lap, data
+           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq
+           #tempo_percorrido, vel_avg, acc_avg, distancia_lap,, data
 
 
 # =====================================================================
