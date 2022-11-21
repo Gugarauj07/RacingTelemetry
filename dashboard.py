@@ -75,10 +75,10 @@ graph_map.update_layout(yaxis_title="Map", margin=dict(l=5, r=5, t=5, b=5), auto
 app.layout = dbc.Container(children=[
     dcc.Interval(
         id='interval-component',
-        interval=500,
+        interval=100,
         n_intervals=0
     ),
-    dcc.Store(id="current-data", storage_type='session'),
+    dcc.Store(id="current-data", storage_type='memory'),
     dbc.Row([
         dbc.Col([
             html.Div(children=[
