@@ -321,7 +321,7 @@ def callback_function(n_clicks):
         ]
 
 
-# Lap Button callback
+# Lap initialize Button callback
 @app.callback(
     Output('connect-div', 'children'),
     Output('current-data', 'data'),
@@ -329,7 +329,7 @@ def callback_function(n_clicks):
     State('current-data', 'data'),
     prevent_initial_call=True
 )
-def lap_callback(n_clicks, data):
+def iniciolap_callback(n_clicks, data):
     if n_clicks is None:
         raise PreventUpdate
     data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0}
@@ -337,9 +337,30 @@ def lap_callback(n_clicks, data):
     data['tempo_inicio'] = data['tempo']
     print(data)
     return [
-            dbc.Button('Finalizar volta!', id='final-button', style={'width': '200px'}, color='warning'),
+               dbc.Button('Finalizar volta!', id='final-button', style={'width': '200px'}, color='warning'),
+               dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
+           ], data
+
+
+# Lap finalize Button callback
+@app.callback(
+    Output('connect-div', 'children'),
+    Output('current-data', 'data'),
+    Input('final-button', 'n_clicks'),
+    State('current-data', 'data'),
+    prevent_initial_call=True
+)
+def finallap_callback(n_clicks, data):
+    if n_clicks is None:
+        raise PreventUpdate
+    data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0, 'tempo_final': 0}
+    data['clicks'] = data['clicks'] + 1
+    data['tempo_final'] = data['tempo']
+    print(data)
+    return [
+            dbc.Button('Iniciar volta!', id='inicio-button', style={'width': '200px'}, color='success'),
             dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
-        ], data
+            ], data
 
 
 # Update Graphs callback
@@ -372,7 +393,7 @@ def update_graphs(n, data):
     if n is None:
         raise PreventUpdate
     else:
-        data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0}
+        data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0, 'tempo_final': 0}
 
         tempo = n
         temp_obj = randrange(40, 60)
@@ -396,6 +417,10 @@ def update_graphs(n, data):
         #     vel_avg = df_tempo["VEL"].mean()
         #     distancia_lap = df_tempo["Distancia"].head(1) - df_tempo["Distancia"].tail(1)
         #     tempo_percorrido = df_tempo["tempo"].head(1) - df_tempo["tempo"].tail(1)
+
+        if data['tempo_final'] != 0:
+            data['tempo_inicio'] = 0
+            data['tempo_final'] = 0
 
         with open(f"Arquivos_CSV/{arquivo}.csv", 'a+', newline='') as f:
             thewriter = csv.writer(f)
@@ -557,7 +582,7 @@ def update_graphs(n, data):
 
     return graph_temperature, graph_velocidade, graph_RPM, graph_ACC, graph_laps, velocidade_text, rpm_text, \
            aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq, data
-           #tempo_percorrido, vel_avg, acc_avg, distancia_lap,, data
+    # tempo_percorrido, vel_avg, acc_avg, distancia_lap,, data
 
 
 # =====================================================================
