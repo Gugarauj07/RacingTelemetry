@@ -10,7 +10,7 @@ from dash.exceptions import PreventUpdate
 from win32api import GetSystemMetrics
 import serial
 import serial.tools.list_ports
-from time import strftime
+from time import strftime, time
 from pathlib import Path
 import csv
 import gc
@@ -39,8 +39,7 @@ path.mkdir(parents=True, exist_ok=True)
 with open(f"Arquivos_CSV/{arquivo}.csv", 'w', newline='') as f:
     thewriter = csv.writer(f)
     thewriter.writerow(
-        ['tempo', 'temp_obj', 'temp_amb', 'RPM_motor', 'RPM_roda', 'capacitivo', 'VEL_D', 'VEL_E', 'ACC', 'Distancia',
-         'button_lap'])
+        ['tempo', 'temp_obj', 'temp_amb', 'RPM_motor', 'VEL_E', 'capacitivo', 'ACC', 'RPM_roda', 'Distancia', 'VEL_D'])
 portList = [port.device for port in serial.tools.list_ports.comports()]
 
 # TESTING
@@ -326,20 +325,20 @@ def callback_function(n_clicks):
     Output('connect-div', 'children'),
     Output('current-data', 'data'),
     Input('inicio-button', 'n_clicks'),
-    State('current-data', 'data'),
+    Input('current-data', 'data'),
     prevent_initial_call=True
 )
 def iniciolap_callback(n_clicks, data):
     if n_clicks is None:
         raise PreventUpdate
-    data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0}
-    data['clicks'] = data['clicks'] + 1
-    data['tempo_inicio'] = data['tempo']
-    print(data)
-    return [
-               dbc.Button('Finalizar volta!', id='final-button', style={'width': '200px'}, color='warning'),
-               dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
-           ], data
+    elif n_clicks > 0:
+        data['clicks'] = data['clicks'] + 1
+        data['tempo_inicio'] = data['tempo']
+        print('oi')
+        return [
+                   dbc.Button('Finalizar volta!', id='final-button', style={'width': '200px'}, color='warning'),
+                   dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
+               ], data
 
 
 # Lap finalize Button callback
@@ -347,20 +346,23 @@ def iniciolap_callback(n_clicks, data):
     Output('connect-div', 'children'),
     Output('current-data', 'data'),
     Input('final-button', 'n_clicks'),
-    State('current-data', 'data'),
+    Input('current-data', 'data'),
     prevent_initial_call=True
 )
 def finallap_callback(n_clicks, data):
     if n_clicks is None:
         raise PreventUpdate
-    data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0, 'tempo_final': 0}
-    data['clicks'] = data['clicks'] + 1
-    data['tempo_final'] = data['tempo']
-    print(data)
-    return [
-            dbc.Button('Iniciar volta!', id='inicio-button', style={'width': '200px'}, color='success'),
-            dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
-            ], data
+    elif n_clicks > 0:
+        data['clicks'] = data['clicks'] + 1
+        data['tempo_final'] = data['tempo']
+        print('oi')
+        return [
+                   dbc.Button('Iniciar volta!', id='inicio-button', style={'width': '200px'}, color='success'),
+                   dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
+               ], data
+
+
+initial_time = int(round(time() * 1000))
 
 
 # Update Graphs callback
@@ -386,7 +388,7 @@ def finallap_callback(n_clicks, data):
     # Output('display_distancia', 'value'),
     Output('current-data', 'data'),
     Input('interval-component', 'n_intervals'),
-    State('current-data', 'data'),
+    Input('current-data', 'data'),
     prevent_initial_call=True
 )
 def update_graphs(n, data):
@@ -395,7 +397,7 @@ def update_graphs(n, data):
     else:
         data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0, 'tempo_final': 0}
 
-        tempo = n
+        tempo = int(round(time() * 1000)) - initial_time
         temp_obj = randrange(40, 60)
         temp_amb = randrange(50, 60)
         RPM = randrange(600, 800)
@@ -410,13 +412,15 @@ def update_graphs(n, data):
         line = [tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, ACC, RPMroda, Distancia, 0]
         df.loc[len(df)] = line
         print(data)
+
         tempo_percorrido, acc_avg, vel_avg, distancia_lap = 0, 0, 0, 0
-        # if data['tempo_inicio'] != 0:
-        #     df_tempo = df.loc[df["tempo"] == data['tempo_inicio']:df["tempo"] == data['tempo']]
-        #     acc_avg = df_tempo["ACC"].mean()
-        #     vel_avg = df_tempo["VEL"].mean()
-        #     distancia_lap = df_tempo["Distancia"].head(1) - df_tempo["Distancia"].tail(1)
-        #     tempo_percorrido = df_tempo["tempo"].head(1) - df_tempo["tempo"].tail(1)
+        if data['tempo_inicio'] != 0:
+            df_tempo = df[df["tempo"].between(data['tempo_inicio'], data['tempo'])]
+            acc_avg = round(df_tempo["ACC"].mean(), 2)
+            vel_avg = round(df_tempo["VEL_E"].mean(), 2)
+            distancia_lap = round(df_tempo["Distancia"].iloc[-1] - df_tempo["Distancia"].iloc[0], 2)
+            tempo_percorrido = df_tempo["tempo"].iloc[-1] - df_tempo["tempo"].iloc[0]
+        print(acc_avg, vel_avg, distancia_lap, tempo_percorrido)
 
         if data['tempo_final'] != 0:
             data['tempo_inicio'] = 0
