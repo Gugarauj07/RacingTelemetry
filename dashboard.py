@@ -363,7 +363,11 @@ def finallap_callback(n_clicks, data):
 
 
 initial_time = int(round(time() * 1000))
-
+def convert_time(millisseconds):
+    mili = millisseconds % 1000
+    seconds = (millisseconds // 1000) % 60
+    minutes = (millisseconds // 1000) // 60
+    return "%d:%02d.%02d" % (minutes, seconds, mili)
 
 # Update Graphs callback
 @app.callback(
@@ -382,10 +386,10 @@ initial_time = int(round(time() * 1000))
     Output('gauge_rpm', 'value'),
     Output('thermoter', 'value'),
     Output('tank', 'value'),
-    # Output('display_tempo', 'value'),
-    # Output('display_vel', 'value'),
-    # Output('display_acc', 'value'),
-    # Output('display_distancia', 'value'),
+    Output('display_tempo', 'value'),
+    Output('display_vel', 'value'),
+    Output('display_acc', 'value'),
+    Output('display_distancia', 'value'),
     Output('current-data', 'data'),
     Input('interval-component', 'n_intervals'),
     Input('current-data', 'data'),
@@ -420,7 +424,7 @@ def update_graphs(n, data):
             vel_avg = round(df_tempo["VEL_E"].mean(), 2)
             distancia_lap = round(df_tempo["Distancia"].iloc[-1] - df_tempo["Distancia"].iloc[0], 2)
             tempo_percorrido = df_tempo["tempo"].iloc[-1] - df_tempo["tempo"].iloc[0]
-        print(acc_avg, vel_avg, distancia_lap, tempo_percorrido)
+            tempo_formatado = convert_time(tempo_percorrido)
 
         if data['tempo_final'] != 0:
             data['tempo_inicio'] = 0
