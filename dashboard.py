@@ -57,6 +57,8 @@ sensors = {
     'VEL_D': [0],
 }
 df = pd.DataFrame(sensors)
+df_laps = pd.DataFrame(columns=["tempo_formatado", "tempo_lap", "acc_avg", "vel_avg", "distancia_lap"])
+
 # =====================================================================
 # Gráficos
 
@@ -363,11 +365,14 @@ def finallap_callback(n_clicks, data):
 
 
 initial_time = int(round(time() * 1000))
+
+
 def convert_time(millisseconds):
     mili = millisseconds % 1000
     seconds = (millisseconds // 1000) % 60
     minutes = (millisseconds // 1000) // 60
     return "%d:%02d.%02d" % (minutes, seconds, mili)
+
 
 # Update Graphs callback
 @app.callback(
@@ -418,7 +423,7 @@ def update_graphs(n, data):
         print(data)
 
         tempo_formatado = "0:00.000"
-        acc_avg, vel_avg, distancia_lap = 0, 0, 0
+        tempo_percorrido, acc_avg, vel_avg, distancia_lap = 0, 0, 0, 0
         if data['tempo_inicio'] != 0:
             df_tempo = df[df["tempo"].between(data['tempo_inicio'], data['tempo'])]
             acc_avg = round(df_tempo["ACC"].mean(), 2)
@@ -430,6 +435,7 @@ def update_graphs(n, data):
         if data['tempo_final'] != 0:
             data['tempo_inicio'] = 0
             data['tempo_final'] = 0
+            df_laps.loc[len(df)] = [tempo_formatado, tempo_percorrido, acc_avg, vel_avg, distancia_lap]
 
         with open(f"Arquivos_CSV/{arquivo}.csv", 'a+', newline='') as f:
             thewriter = csv.writer(f)
@@ -463,7 +469,8 @@ def update_graphs(n, data):
                 "template": 'plotly_dark',
                 "font": {"color": "white"},
                 "paper_bgcolor": "rgb(10,10,10)",
-                "plot_bgcolor": "rgb(10,10,10)"
+                "plot_bgcolor": "rgb(10,10,10)",
+                "hovermode": 'x unified'
             }
         }
         graph_velocidade = {
@@ -492,7 +499,8 @@ def update_graphs(n, data):
                 "template": 'plotly_dark',
                 "font": {"color": "white"},
                 "paper_bgcolor": "rgb(10,10,10)",
-                "plot_bgcolor": "rgb(10,10,10)"
+                "plot_bgcolor": "rgb(10,10,10)",
+                "hovermode": 'x unified'
             }
         }
         graph_RPM = {
@@ -521,7 +529,8 @@ def update_graphs(n, data):
                 "template": 'plotly_dark',
                 "font": {"color": "white"},
                 "paper_bgcolor": "rgb(10,10,10)",
-                "plot_bgcolor": "rgb(10,10,10)"
+                "plot_bgcolor": "rgb(10,10,10)",
+                "hovermode": 'x unified'
             }
         }
         graph_ACC = {
@@ -531,7 +540,7 @@ def update_graphs(n, data):
                     'mode': 'lines',
                     'type': 'scatter',
                     'name': 'ACC',
-                    'y': df['ACC'].tail(50)
+                    'y': df['ACC'].tail(50),
                 }
             ],
             "layout": {
@@ -543,7 +552,8 @@ def update_graphs(n, data):
                 "template": 'plotly_dark',
                 "font": {"color": "white"},
                 "paper_bgcolor": "rgb(10,10,10)",
-                "plot_bgcolor": "rgb(10,10,10)"
+                "plot_bgcolor": "rgb(10,10,10)",
+                "hovermode": 'x unified'
             }
         }
         graph_laps = {
@@ -553,8 +563,9 @@ def update_graphs(n, data):
                     'mode': 'lines',
                     'type': 'bar',
                     'name': 'laps',
-                    'y': df['ACC'].tail(50)
-                }
+                    'y': df_laps['tempo_lap'].tail(50),
+                    'hover_data': ['tempo_formatado']
+        }
             ],
             "layout": {
                 "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
@@ -590,7 +601,7 @@ def update_graphs(n, data):
         temp = float(temp_text)
 
     return graph_temperature, graph_velocidade, graph_RPM, graph_ACC, graph_laps, velocidade_text, rpm_text, \
-           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq,\
+           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq, \
            tempo_formatado, vel_avg, acc_avg, distancia_lap, data
 
 

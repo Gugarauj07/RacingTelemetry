@@ -1,8 +1,5 @@
 # from threading import Event, Thread
 #
-#
-#
-#
 # # VEL, counter_laps, tempo_inicio = 0, 0, 0
 #
 #
