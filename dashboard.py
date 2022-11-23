@@ -5,12 +5,12 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import plotly.io as io
 import pandas as pd
-from dash.dependencies import Input, Output, State
+from dash_extensions.enrich import DashProxy, MultiplexerTransform, Input, Output, State
 from dash.exceptions import PreventUpdate
 from win32api import GetSystemMetrics
 import serial
 import serial.tools.list_ports
-from time import strftime
+from time import strftime, time
 from pathlib import Path
 import csv
 import gc
@@ -20,10 +20,13 @@ from random import randrange
 # Configurações iniciais
 screen_height = GetSystemMetrics(1)
 
-io.templates.default = 'plotly_dark'
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG],
-                meta_tags=[{'name': 'viewport',
-                            'content': 'width=device-width, initial-scale=1.0'}])
+app = DashProxy(
+    prevent_initial_callbacks=True,
+    suppress_callback_exceptions=True,
+    external_stylesheets=[dbc.themes.CYBORG],
+    meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
+    transforms=[MultiplexerTransform()]
+)
 
 df_map = pd.read_csv("map.csv")
 
@@ -36,8 +39,7 @@ path.mkdir(parents=True, exist_ok=True)
 with open(f"Arquivos_CSV/{arquivo}.csv", 'w', newline='') as f:
     thewriter = csv.writer(f)
     thewriter.writerow(
-        ['tempo', 'temp_obj', 'temp_amb', 'RPM_motor', 'RPM_roda', 'capacitivo', 'VEL_D', 'VEL_E', 'ACC', 'Distancia',
-         'button_lap'])
+        ['tempo', 'temp_obj', 'temp_amb', 'RPM_motor', 'VEL_E', 'capacitivo', 'ACC', 'RPM_roda', 'Distancia', 'VEL_D'])
 portList = [port.device for port in serial.tools.list_ports.comports()]
 
 # TESTING
@@ -55,6 +57,8 @@ sensors = {
     'VEL_D': [0],
 }
 df = pd.DataFrame(sensors)
+df_laps = pd.DataFrame(columns=["tempo_formatado", "tempo_lap", "acc_avg", "vel_avg", "distancia_lap"])
+
 # =====================================================================
 # Gráficos
 
@@ -72,10 +76,10 @@ graph_map.update_layout(yaxis_title="Map", margin=dict(l=5, r=5, t=5, b=5), auto
 app.layout = dbc.Container(children=[
     dcc.Interval(
         id='interval-component',
-        interval=500,
+        interval=100,
         n_intervals=0
     ),
-    dcc.Store(id="current-data", storage_type='session'),
+    dcc.Store(id="current-data", storage_type='memory'),
     dbc.Row([
         dbc.Col([
             html.Div(children=[
@@ -313,26 +317,61 @@ app.layout = dbc.Container(children=[
 def callback_function(n_clicks):
     if n_clicks > 0:
         return [
-            dbc.Button('Marcar volta!', id='lap-button', style={'width': '200px'}, color='warning'),
+            dbc.Button('Iniciar volta!', id='inicio-button', style={'width': '200px'}, color='success'),
             dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
         ]
 
 
-# Lap Button callback
+# Lap initialize Button callback
 @app.callback(
+    Output('connect-div', 'children'),
     Output('current-data', 'data'),
-    Input('lap-button', 'n_clicks'),
-    State('current-data', 'data'),
+    Input('inicio-button', 'n_clicks'),
+    Input('current-data', 'data'),
     prevent_initial_call=True
 )
-def lap_callback(n_clicks, data):
+def iniciolap_callback(n_clicks, data):
     if n_clicks is None:
         raise PreventUpdate
-    data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0}
-    data['clicks'] = data['clicks'] + 1
-    data['tempo_inicio'] = data['tempo']
-    print(data)
-    return data
+    elif n_clicks > 0:
+        data['clicks'] = data['clicks'] + 1
+        data['tempo_inicio'] = data['tempo']
+        print('oi')
+        return [
+                   dbc.Button('Finalizar volta!', id='final-button', style={'width': '200px'}, color='warning'),
+                   dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
+               ], data
+
+
+# Lap finalize Button callback
+@app.callback(
+    Output('connect-div', 'children'),
+    Output('current-data', 'data'),
+    Input('final-button', 'n_clicks'),
+    Input('current-data', 'data'),
+    prevent_initial_call=True
+)
+def finallap_callback(n_clicks, data):
+    if n_clicks is None:
+        raise PreventUpdate
+    elif n_clicks > 0:
+        data['clicks'] = data['clicks'] + 1
+        data['tempo_final'] = data['tempo']
+        print('oi')
+        return [
+                   dbc.Button('Iniciar volta!', id='inicio-button', style={'width': '200px'}, color='success'),
+                   dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
+               ], data
+
+
+initial_time = int(round(time() * 1000))
+
+
+def convert_time(millisseconds):
+    mili = millisseconds % 1000
+    seconds = (millisseconds // 1000) % 60
+    minutes = (millisseconds // 1000) // 60
+    return "%d:%02d.%02d" % (minutes, seconds, mili)
 
 
 # Update Graphs callback
@@ -352,22 +391,22 @@ def lap_callback(n_clicks, data):
     Output('gauge_rpm', 'value'),
     Output('thermoter', 'value'),
     Output('tank', 'value'),
-    # Output('display_tempo', 'value'),
-    # Output('display_vel', 'value'),
-    # Output('display_acc', 'value'),
-    # Output('display_distancia', 'value'),
-    # Output('current-data', 'data'),
+    Output('display_tempo', 'value'),
+    Output('display_vel', 'value'),
+    Output('display_acc', 'value'),
+    Output('display_distancia', 'value'),
+    Output('current-data', 'data'),
     Input('interval-component', 'n_intervals'),
-    State('current-data', 'data'),
+    Input('current-data', 'data'),
     prevent_initial_call=True
 )
 def update_graphs(n, data):
     if n is None:
         raise PreventUpdate
     else:
-        data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0}
+        data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0, 'tempo_final': 0}
 
-        tempo = n
+        tempo = int(round(time() * 1000)) - initial_time
         temp_obj = randrange(40, 60)
         temp_amb = randrange(50, 60)
         RPM = randrange(600, 800)
@@ -382,13 +421,21 @@ def update_graphs(n, data):
         line = [tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, ACC, RPMroda, Distancia, 0]
         df.loc[len(df)] = line
         print(data)
+
+        tempo_formatado = "0:00.000"
         tempo_percorrido, acc_avg, vel_avg, distancia_lap = 0, 0, 0, 0
         if data['tempo_inicio'] != 0:
-            df_tempo = df.loc[df["tempo"] == data['tempo_inicio']:df["tempo"] == data['tempo']]
-            acc_avg = df_tempo["ACC"].mean()
-            vel_avg = df_tempo["VEL"].mean()
-            distancia_lap = df_tempo["Distancia"].head(1) - df_tempo["Distancia"].tail(1)
-            tempo_percorrido = df_tempo["tempo"].head(1) - df_tempo["tempo"].tail(1)
+            df_tempo = df[df["tempo"].between(data['tempo_inicio'], data['tempo'])]
+            acc_avg = round(df_tempo["ACC"].mean(), 2)
+            vel_avg = round(df_tempo["VEL_E"].mean(), 2)
+            distancia_lap = round(df_tempo["Distancia"].iloc[-1] - df_tempo["Distancia"].iloc[0], 2)
+            tempo_percorrido = df_tempo["tempo"].iloc[-1] - df_tempo["tempo"].iloc[0]
+            tempo_formatado = convert_time(tempo_percorrido)
+
+        if data['tempo_final'] != 0:
+            data['tempo_inicio'] = 0
+            data['tempo_final'] = 0
+            df_laps.loc[len(df)] = [tempo_formatado, tempo_percorrido, acc_avg, vel_avg, distancia_lap]
 
         with open(f"Arquivos_CSV/{arquivo}.csv", 'a+', newline='') as f:
             thewriter = csv.writer(f)
@@ -422,7 +469,8 @@ def update_graphs(n, data):
                 "template": 'plotly_dark',
                 "font": {"color": "white"},
                 "paper_bgcolor": "rgb(10,10,10)",
-                "plot_bgcolor": "rgb(10,10,10)"
+                "plot_bgcolor": "rgb(10,10,10)",
+                "hovermode": 'x unified'
             }
         }
         graph_velocidade = {
@@ -451,7 +499,8 @@ def update_graphs(n, data):
                 "template": 'plotly_dark',
                 "font": {"color": "white"},
                 "paper_bgcolor": "rgb(10,10,10)",
-                "plot_bgcolor": "rgb(10,10,10)"
+                "plot_bgcolor": "rgb(10,10,10)",
+                "hovermode": 'x unified'
             }
         }
         graph_RPM = {
@@ -480,7 +529,8 @@ def update_graphs(n, data):
                 "template": 'plotly_dark',
                 "font": {"color": "white"},
                 "paper_bgcolor": "rgb(10,10,10)",
-                "plot_bgcolor": "rgb(10,10,10)"
+                "plot_bgcolor": "rgb(10,10,10)",
+                "hovermode": 'x unified'
             }
         }
         graph_ACC = {
@@ -490,7 +540,7 @@ def update_graphs(n, data):
                     'mode': 'lines',
                     'type': 'scatter',
                     'name': 'ACC',
-                    'y': df['ACC'].tail(50)
+                    'y': df['ACC'].tail(50),
                 }
             ],
             "layout": {
@@ -502,7 +552,8 @@ def update_graphs(n, data):
                 "template": 'plotly_dark',
                 "font": {"color": "white"},
                 "paper_bgcolor": "rgb(10,10,10)",
-                "plot_bgcolor": "rgb(10,10,10)"
+                "plot_bgcolor": "rgb(10,10,10)",
+                "hovermode": 'x unified'
             }
         }
         graph_laps = {
@@ -512,8 +563,8 @@ def update_graphs(n, data):
                     'mode': 'lines',
                     'type': 'bar',
                     'name': 'laps',
-                    'y': df['ACC'].tail(50)
-                }
+                    'y': df_laps['tempo_lap'].tail(50),
+        }
             ],
             "layout": {
                 "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
@@ -549,8 +600,8 @@ def update_graphs(n, data):
         temp = float(temp_text)
 
     return graph_temperature, graph_velocidade, graph_RPM, graph_ACC, graph_laps, velocidade_text, rpm_text, \
-           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq
-           #tempo_percorrido, vel_avg, acc_avg, distancia_lap,, data
+           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq, \
+           tempo_formatado, vel_avg, acc_avg, distancia_lap, data
 
 
 # =====================================================================
