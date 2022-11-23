@@ -417,7 +417,8 @@ def update_graphs(n, data):
         df.loc[len(df)] = line
         print(data)
 
-        tempo_percorrido, acc_avg, vel_avg, distancia_lap = 0, 0, 0, 0
+        tempo_formatado = "0:00.000"
+        acc_avg, vel_avg, distancia_lap = 0, 0, 0
         if data['tempo_inicio'] != 0:
             df_tempo = df[df["tempo"].between(data['tempo_inicio'], data['tempo'])]
             acc_avg = round(df_tempo["ACC"].mean(), 2)
@@ -589,8 +590,8 @@ def update_graphs(n, data):
         temp = float(temp_text)
 
     return graph_temperature, graph_velocidade, graph_RPM, graph_ACC, graph_laps, velocidade_text, rpm_text, \
-           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq, data
-    # tempo_percorrido, vel_avg, acc_avg, distancia_lap,, data
+           aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq,\
+           tempo_formatado, vel_avg, acc_avg, distancia_lap, data
 
 
 # =====================================================================
