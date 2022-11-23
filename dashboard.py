@@ -564,7 +564,6 @@ def update_graphs(n, data):
                     'type': 'bar',
                     'name': 'laps',
                     'y': df_laps['tempo_lap'].tail(50),
-                    'hover_data': ['tempo_formatado']
         }
             ],
             "layout": {
