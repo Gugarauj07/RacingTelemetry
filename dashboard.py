@@ -312,10 +312,21 @@ app.layout = dbc.Container(children=[
 @app.callback(
     Output('connect-div', 'children'),
     Input('connect-button', 'n_clicks'),
+    Input('baudrate-dropdown', 'value'),
+    Input('ports-dropdown', 'value'),
     prevent_initial_call=True
 )
-def callback_function(n_clicks):
+def callback_function(n_clicks, baud, port):
     if n_clicks > 0:
+
+        serialPort.port = port
+        serialPort.baudrate = int(baud)
+
+        try:
+            serialPort.open()  # Tenta abrir a porta serial
+        except:
+            print("ERROR SERIAL")
+
         return [
             dbc.Button('Iniciar volta!', id='inicio-button', style={'width': '200px'}, color='success'),
             dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
@@ -407,13 +418,15 @@ def update_graphs(n, data):
         data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0, 'tempo_final': 0}
 
         tempo = int(round(time() * 1000)) - initial_time
-        temp_obj = randrange(40, 60)
-        temp_amb = randrange(50, 60)
-        RPM = randrange(600, 800)
-        VEL = randrange(20, 30)
-        capacitivo = randrange(0, 3)
+        temp_obj, temp_amb, RPM, VEL, capacitivo = 0, 0, 0, 0, 0
 
-        # tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, button = serialPort.readline().decode("utf-8").split(',')
+        if serialPort.is_open:
+            try:
+                temp_obj, temp_amb, RPM, VEL, capacitivo = [int(x) for x in serialPort.readline().decode("utf-8").rstrip("\r\n").split(',')]
+                print("foi")
+            except ValueError:
+                print("ValueError")
+
         data['tempo'] = tempo
         Distancia = round(VEL / 3.6 + float(df["Distancia"].tail(1)), 2)  # Metros
         ACC = round(VEL - float(df["VEL_E"].tail(1)), 2)
@@ -564,7 +577,7 @@ def update_graphs(n, data):
                     'type': 'bar',
                     'name': 'laps',
                     'y': df_laps['tempo_lap'].tail(50),
-        }
+                }
             ],
             "layout": {
                 "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
