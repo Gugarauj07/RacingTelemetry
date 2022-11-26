@@ -1,9 +1,7 @@
-import dash
 from dash import html, dcc
 import dash_daq as daq
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
-import plotly.io as io
 import pandas as pd
 from dash_extensions.enrich import DashProxy, MultiplexerTransform, Input, Output, State
 from dash.exceptions import PreventUpdate
@@ -76,7 +74,7 @@ graph_map.update_layout(yaxis_title="Map", margin=dict(l=5, r=5, t=5, b=5), auto
 app.layout = dbc.Container(children=[
     dcc.Interval(
         id='interval-component',
-        interval=100,
+        interval=1000,
         n_intervals=0
     ),
     dcc.Store(id="current-data", storage_type='memory'),
@@ -345,7 +343,6 @@ def iniciolap_callback(n_clicks, data):
     if n_clicks is None:
         raise PreventUpdate
     elif n_clicks > 0:
-        data['clicks'] = data['clicks'] + 1
         data['tempo_inicio'] = data['tempo']
         print('oi')
         return [
@@ -366,7 +363,6 @@ def finallap_callback(n_clicks, data):
     if n_clicks is None:
         raise PreventUpdate
     elif n_clicks > 0:
-        data['clicks'] = data['clicks'] + 1
         data['tempo_final'] = data['tempo']
         print('oi')
         return [
@@ -415,7 +411,7 @@ def update_graphs(n, data):
     if n is None:
         raise PreventUpdate
     else:
-        data = data or {'clicks': 0, 'tempo': 0, 'tempo_inicio': 0, 'tempo_final': 0}
+        data = data or {'tempo': 0, 'tempo_inicio': 0, 'tempo_final': 0}
 
         tempo = int(round(time() * 1000)) - initial_time
         temp_obj, temp_amb, RPM, VEL, capacitivo = 0, 0, 0, 0, 0
@@ -423,7 +419,6 @@ def update_graphs(n, data):
         if serialPort.is_open:
             try:
                 temp_obj, temp_amb, RPM, VEL, capacitivo = [int(x) for x in serialPort.readline().decode("utf-8").rstrip("\r\n").split(',')]
-                print("foi")
             except ValueError:
                 print("ValueError")
 
@@ -433,10 +428,10 @@ def update_graphs(n, data):
         RPMroda = VEL / ((18 / 60) * 0.04625 * 1.72161199 * 3.6)
         line = [tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, ACC, RPMroda, Distancia, 0]
         df.loc[len(df)] = line
-        print(data)
 
         tempo_formatado = "0:00.000"
         tempo_percorrido, acc_avg, vel_avg, distancia_lap = 0, 0, 0, 0
+
         if data['tempo_inicio'] != 0:
             df_tempo = df[df["tempo"].between(data['tempo_inicio'], data['tempo'])]
             acc_avg = round(df_tempo["ACC"].mean(), 2)
@@ -446,15 +441,16 @@ def update_graphs(n, data):
             tempo_formatado = convert_time(tempo_percorrido)
 
         if data['tempo_final'] != 0:
-            data['tempo_inicio'] = 0
             data['tempo_final'] = 0
-            df_laps.loc[len(df)] = [tempo_formatado, tempo_percorrido, acc_avg, vel_avg, distancia_lap]
+            data['tempo_inicio'] = 0
+            df_laps.loc[len(df_laps)] = [tempo_formatado, tempo_percorrido, acc_avg, vel_avg, distancia_lap]
+            print(df_laps)
 
         with open(f"Arquivos_CSV/{arquivo}.csv", 'a+', newline='') as f:
             thewriter = csv.writer(f)
             thewriter.writerow(line)
 
-        gc.collect()
+        # gc.collect()
 
         graph_temperature = {
             'data': [
@@ -620,4 +616,4 @@ def update_graphs(n, data):
 # =====================================================================
 # Interactivity
 if __name__ == '__main__':
-    app.run_server(host="0.0.0.0", port="8050")
+    app.run_server(host="0.0.0.0", port="8050", threaded=True)

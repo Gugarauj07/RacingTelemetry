@@ -1,89 +1,70 @@
-from dash import Dash, dcc, html, Input, Output
 import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from dash import dcc
+from dash import html
+from dash import Dash
+from dash.dependencies import Input, Output
+import dash
 
-import json
+# code and plot setup
+# settings
+pd.options.plotting.backend = "plotly"
+countdown = 20
+# global df
 
+# sample dataframe of a wide format
+np.random.seed(4)
+cols = list('abc')
+X = np.random.randn(50, len(cols))
+df = pd.DataFrame(X, columns=cols)
+df.iloc[0] = 0
+
+# plotly figure
+fig = df.plot(template='plotly_dark')
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-
 app = Dash(__name__, external_stylesheets=external_stylesheets)
-
-df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminderDataFiveYear.csv')
-
-available_countries = df['country'].unique()
-
 app.layout = html.Div([
-    dcc.Graph(
-        id='clientside-graph'
+    html.H1("Streaming of random data"),
+    dcc.Interval(
+        id='interval-component',
+        interval=1 * 1000,  # in milliseconds
+        n_intervals=0
     ),
-    dcc.Store(
-        id='clientside-figure-store',
-        data=[{
-            'x': df[df['country'] == 'Canada']['year'],
-            'y': df[df['country'] == 'Canada']['pop']
-        }]
-    ),
-    'Indicator',
-    dcc.Dropdown(
-        {'pop' : 'Population', 'lifeExp': 'Life Expectancy', 'gdpPercap': 'GDP per Capita'},
-        'pop',
-        id='clientside-graph-indicator'
-    ),
-    'Country',
-    dcc.Dropdown(available_countries, 'Canada', id='clientside-graph-country'),
-    'Graph scale',
-    dcc.RadioItems(
-        ['linear', 'log'],
-        'linear',
-        id='clientside-graph-scale'
-    ),
-    html.Hr(),
-    html.Details([
-        html.Summary('Contents of figure storage'),
-        dcc.Markdown(
-            id='clientside-figure-json'
-        )
-    ])
+    dcc.Graph(id='graph'),
 ])
 
 
+# Define callback to update graph
 @app.callback(
-    Output('clientside-figure-store', 'data'),
-    Input('clientside-graph-indicator', 'value'),
-    Input('clientside-graph-country', 'value')
+    Output('graph', 'figure'),
+    [Input('interval-component', "n_intervals")]
 )
-def update_store_data(indicator, country):
-    dff = df[df['country'] == country]
-    return [{
-        'x': dff['year'],
-        'y': dff[indicator],
-        'mode': 'markers'
-    }]
+def streamFig(value):
+    global df
+
+    Y = np.random.randn(1, len(cols))
+    df2 = pd.DataFrame(Y, columns=cols)
+    df = df.append(df2, ignore_index=True)  # .reset_index()
+    # df.tail()
+    df3 = df.copy()
+    df3 = df3.cumsum()  # .tail(1000)
+    fig = df3.plot(template='plotly_dark')
+    # fig.show()
+
+    colors = px.colors.qualitative.Plotly
+    for i, col in enumerate(df3.columns):
+        fig.add_annotation(x=df3.index[-1], y=df3[col].iloc[-1],
+                           text=str(df3[col].iloc[-1])[:4],
+                           align="right",
+                           arrowcolor='rgba(0,0,0,0)',
+                           ax=25,
+                           ay=0,
+                           yanchor='middle',
+                           font=dict(color=colors[i]))
+
+    return (fig)
 
 
-app.clientside_callback(
-    """
-    function(data, scale) {
-        return {
-            'data': data,
-            'layout': {
-                 'yaxis': {'type': scale}
-             }
-        }
-    }
-    """,
-    Output('clientside-graph', 'figure'),
-    Input('clientside-figure-store', 'data'),
-    Input('clientside-graph-scale', 'value')
-)
-
-
-@app.callback(
-    Output('clientside-figure-json', 'children'),
-    Input('clientside-figure-store', 'data')
-)
-def generated_figure_json(data):
-    return '```\n'+json.dumps(data, indent=2)+'\n```'
-
-
-if __name__ == '__main__':
-    app.run_server(debug=True)
+app.run_server()
