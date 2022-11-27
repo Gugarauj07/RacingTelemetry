@@ -359,6 +359,28 @@ def iniciolap_callback(ibtn, fbtn, data):
             return data
 
 
+# app.clientside_callback(
+#     """
+#     function(ibtn, fbtn, data) {
+#         button_clicked = ctx.triggered_id
+#         data = data || {'tempo': 0, 'tempo_inicio': 0, 'tempo_final': 0}
+#
+#         if (button_clicked == 'inicio-button'){
+#             data["tempo_inicio"] = data["tempo"]
+#             return data
+#         }
+#         elif (button_clicked == 'final-button'){
+#             data["tempo_final"] = data["tempo"]
+#             return data
+#         }
+#     }
+#     """,
+#     Output('current-data', 'data'),
+#     Input('inicio-button', 'n_clicks'),
+#     Input('final-button', 'n_clicks'),
+#     State('current-data', 'data'),
+# )
+
 initial_time = int(round(time() * 1000))
 
 
