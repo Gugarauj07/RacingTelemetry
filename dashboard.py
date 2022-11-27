@@ -1,4 +1,4 @@
-from dash import html, dcc
+from dash import html, dcc, ctx
 import dash_daq as daq
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
@@ -74,7 +74,7 @@ graph_map.update_layout(yaxis_title="Map", margin=dict(l=5, r=5, t=5, b=5), auto
 app.layout = dbc.Container(children=[
     dcc.Interval(
         id='interval-component',
-        interval=1000,
+        interval=400,
         n_intervals=0
     ),
     dcc.Store(id="current-data", storage_type='memory'),
@@ -91,6 +91,7 @@ app.layout = dbc.Container(children=[
             dcc.Dropdown(portList, id='ports-dropdown', value='portList[0]', placeholder='COM Ports',
                          style={'width': '150px'}),
             dbc.Button('Connect', id='connect-button', style={'width': '150px'}),
+
         ], class_name='d-flex p-3 align-items-center justify-content-evenly', id='connect-div'),
     ]),
 
@@ -315,8 +316,9 @@ app.layout = dbc.Container(children=[
     prevent_initial_call=True
 )
 def callback_function(n_clicks, baud, port):
+    if n_clicks is None:
+        raise PreventUpdate
     if n_clicks > 0:
-
         serialPort.port = port
         serialPort.baudrate = int(baud)
 
@@ -327,48 +329,34 @@ def callback_function(n_clicks, baud, port):
 
         return [
             dbc.Button('Iniciar volta!', id='inicio-button', style={'width': '200px'}, color='success'),
-            dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
+            dbc.Button('Finalizar volta!', id='final-button', style={'width': '200px'}, color='warning'),
+            dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger', href='/'),
         ]
 
 
 # Lap initialize Button callback
 @app.callback(
-    Output('connect-div', 'children'),
     Output('current-data', 'data'),
     Input('inicio-button', 'n_clicks'),
-    Input('current-data', 'data'),
-    prevent_initial_call=True
-)
-def iniciolap_callback(n_clicks, data):
-    if n_clicks is None:
-        raise PreventUpdate
-    elif n_clicks > 0:
-        data['tempo_inicio'] = data['tempo']
-        print('oi')
-        return [
-                   dbc.Button('Finalizar volta!', id='final-button', style={'width': '200px'}, color='warning'),
-                   dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
-               ], data
-
-
-# Lap finalize Button callback
-@app.callback(
-    Output('connect-div', 'children'),
-    Output('current-data', 'data'),
     Input('final-button', 'n_clicks'),
-    Input('current-data', 'data'),
+    State('current-data', 'data'),
     prevent_initial_call=True
 )
-def finallap_callback(n_clicks, data):
-    if n_clicks is None:
+def iniciolap_callback(ibtn, fbtn, data):
+    if ibtn and fbtn is None:
         raise PreventUpdate
-    elif n_clicks > 0:
-        data['tempo_final'] = data['tempo']
-        print('oi')
-        return [
-                   dbc.Button('Iniciar volta!', id='inicio-button', style={'width': '200px'}, color='success'),
-                   dbc.Button('Disconnect', id='disconnect-button', style={'width': '200px'}, color='danger'),
-               ], data
+    else:
+        button_clicked = ctx.triggered_id
+        data = data or {'tempo': 0, 'tempo_inicio': 0, 'tempo_final': 0}
+
+        if button_clicked == 'inicio-button':
+            data['tempo_inicio'] = data['tempo']
+            print('oi')
+            return data
+        elif button_clicked == 'final-button':
+            data['tempo_final'] = data['tempo']
+            print('oi')
+            return data
 
 
 initial_time = int(round(time() * 1000))
@@ -418,7 +406,9 @@ def update_graphs(n, data):
 
         if serialPort.is_open:
             try:
-                temp_obj, temp_amb, RPM, VEL, capacitivo = [int(x) for x in serialPort.readline().decode("utf-8").rstrip("\r\n").split(',')]
+                temp_obj, temp_amb, RPM, VEL, capacitivo = [int(x) for x in
+                                                            serialPort.readline().decode("utf-8").rstrip("\r\n").split(
+                                                                ',')]
             except ValueError:
                 print("ValueError")
 
@@ -444,7 +434,6 @@ def update_graphs(n, data):
             data['tempo_final'] = 0
             data['tempo_inicio'] = 0
             df_laps.loc[len(df_laps)] = [tempo_formatado, tempo_percorrido, acc_avg, vel_avg, distancia_lap]
-            print(df_laps)
 
         with open(f"Arquivos_CSV/{arquivo}.csv", 'a+', newline='') as f:
             thewriter = csv.writer(f)
@@ -545,7 +534,7 @@ def update_graphs(n, data):
         graph_ACC = {
             'data': [
                 {
-                    'line': {'color': '#26C485'},
+                    'line': {'color': '#E24C33'},
                     'mode': 'lines',
                     'type': 'scatter',
                     'name': 'ACC',
@@ -616,4 +605,4 @@ def update_graphs(n, data):
 # =====================================================================
 # Interactivity
 if __name__ == '__main__':
-    app.run_server(host="0.0.0.0", port="8050", threaded=True)
+    app.run_server(threaded=True, debug=True)
