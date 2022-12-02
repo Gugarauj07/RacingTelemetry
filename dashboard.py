@@ -449,10 +449,10 @@ def update_graphs(n, data):
             tempo_percorrido = df_tempo["tempo"].iloc[-1] - df_tempo["tempo"].iloc[0]
             tempo_formatado = convert_time(tempo_percorrido)
 
-        if data['tempo_final'] != 0:
-            data['tempo_final'] = 0
-            data['tempo_inicio'] = 0
-            df_laps.loc[len(df_laps)] = [tempo_formatado, tempo_percorrido, acc_avg, vel_avg, distancia_lap]
+            if data['tempo_final'] != 0:
+                data['tempo_final'] = 0
+                data['tempo_inicio'] = 0
+                df_laps.loc[len(df_laps)] = [tempo_formatado, tempo_percorrido, acc_avg, vel_avg, distancia_lap]
 
         with open(f"Arquivos_CSV/{arquivo}.csv", 'a+', newline='') as f:
             thewriter = csv.writer(f)
