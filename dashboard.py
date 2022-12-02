@@ -60,10 +60,6 @@ df_laps = pd.DataFrame(columns=["tempo_formatado", "tempo_lap", "acc_avg", "vel_
 # =====================================================================
 # Gráficos
 
-# graph_laps = go.Figure(layout={"template": "plotly_dark"})
-# graph_laps.add_trace(go.Bar(x=df["tempo"], y=df["ACC"]))
-# graph_laps.update_layout(yaxis_title="Lap Times", margin=dict(l=5, r=5, t=5, b=5), autosize=True, height=170)
-
 graph_map = go.Figure(layout={"template": "plotly_dark"})
 graph_map.add_trace(
     go.Scatter(x=df_map["latitude"], y=df_map["longitude"], name="location"))
@@ -437,13 +433,14 @@ def update_graphs(n, data):
         data['tempo'] = tempo
         Distancia = round(VEL / 3.6 + float(df["Distancia"].tail(1)), 2)  # Metros
         ACC = round(VEL - float(df["VEL_E"].tail(1)), 2)
+        ACC = ACC if ACC > 0 else 0
+
         RPMroda = VEL / ((18 / 60) * 0.04625 * 1.72161199 * 3.6)
         line = [tempo, temp_obj, temp_amb, RPM, VEL, capacitivo, ACC, RPMroda, Distancia, 0]
         df.loc[len(df)] = line
 
         tempo_formatado = "0:00.000"
         tempo_percorrido, acc_avg, vel_avg, distancia_lap = 0, 0, 0, 0
-
         if data['tempo_inicio'] != 0:
             df_tempo = df[df["tempo"].between(data['tempo_inicio'], data['tempo'])]
             acc_avg = round(df_tempo["ACC"].mean(), 2)
@@ -579,12 +576,26 @@ def update_graphs(n, data):
         graph_laps = {
             'data': [
                 {
-                    'line': {'color': '#26C485'},
-                    'mode': 'lines',
                     'type': 'bar',
-                    'name': 'laps',
-                    'y': df_laps['tempo_lap'].tail(50),
-                }
+                    'name': 'Tempo Percorrido',
+                    'y': [x/1000 for x in df_laps['tempo_lap'].tail(50)]
+                },
+                {
+                    'type': 'bar',
+                    'name': 'Velocidade Média',
+                    'y': df_laps['vel_avg'].tail(50)
+                },
+                {
+                    'type': 'bar',
+                    'name': 'Aceleração Média',
+                    'y': df_laps['acc_avg'].tail(50)
+                },
+                {
+                    'type': 'bar',
+                    'name': "Distancia Percorrida",
+                    'y': [x/10 for x in df_laps['distancia_lap'].tail(50)]
+                },
+
             ],
             "layout": {
                 "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
