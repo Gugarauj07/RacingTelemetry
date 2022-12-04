@@ -80,8 +80,11 @@ app.layout = dbc.Container(children=[
                 html.H5(children='BAJA UEA'),
                 html.H6(children="Visualização dos dados da telemetria"),
             ]),
+            html.P(id='inicio-button'),
+            html.P(id='final-button'),
         ]),
         dbc.Col([
+
             dcc.Dropdown(['2400', '4800', '9600', '115200'], id='baudrate-dropdown', value='9600',
                          placeholder='Baudrate', style={'width': '150px'}),
             dcc.Dropdown(portList, id='ports-dropdown', value='portList[0]', placeholder='COM Ports',
@@ -467,7 +470,7 @@ def update_graphs(n, ibtn, fbtn):
                 "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
                 "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Temperatura CVT"),
                 "autosize": True,
-                "height": screen_height / 7,
+                "height": screen_height*2 / 13,
                 "margin": dict(l=40, r=5, t=5, b=20),
                 "template": 'plotly_dark',
                 "font": {"color": "white"},
@@ -497,7 +500,7 @@ def update_graphs(n, ibtn, fbtn):
                 "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
                 "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Velocidade"),
                 "autosize": True,
-                "height": screen_height / 7,
+                "height":  screen_height*2 / 13,
                 "margin": dict(l=40, r=5, t=5, b=20),
                 "template": 'plotly_dark',
                 "font": {"color": "white"},
@@ -527,7 +530,7 @@ def update_graphs(n, ibtn, fbtn):
                 "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
                 "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Rotação"),
                 "autosize": True,
-                "height": screen_height / 7,
+                "height":  screen_height*2 / 13,
                 "margin": dict(l=40, r=5, t=5, b=20),
                 "template": 'plotly_dark',
                 "font": {"color": "white"},
@@ -550,7 +553,7 @@ def update_graphs(n, ibtn, fbtn):
                 "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
                 "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Aceleração"),
                 "autosize": True,
-                "height": screen_height / 7,
+                "height":  screen_height*2 / 13,
                 "margin": dict(l=40, r=5, t=5, b=20),
                 "template": 'plotly_dark',
                 "font": {"color": "white"},
@@ -587,12 +590,13 @@ def update_graphs(n, ibtn, fbtn):
                 "xaxis": dict(showline=False, showgrid=True, zeroline=False, autorange=True),
                 "yaxis": dict(showgrid=True, showline=False, zeroline=False, autorange=True, title="Tempo de voltas"),
                 "autosize": True,
-                "height": screen_height * 2 / 9,
+                "height":  screen_height*4 / 13,
                 "margin": dict(l=40, r=5, t=5, b=20),
                 "template": 'plotly_dark',
                 "font": {"color": "white"},
                 "paper_bgcolor": "rgb(10,10,10)",
-                "plot_bgcolor": "rgb(10,10,10)"
+                "plot_bgcolor": "rgb(10,10,10)",
+                "hovermode": 'x unified'
             }
         }
 
