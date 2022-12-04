@@ -330,31 +330,6 @@ def callback_function(n_clicks, baud, port):
         ]
 
 
-# Lap initialize Button callback
-@app.callback(
-    Output('current-data', 'data'),
-    Input('inicio-button', 'n_clicks'),
-    Input('final-button', 'n_clicks'),
-    State('current-data', 'data'),
-    prevent_initial_call=True
-)
-def iniciolap_callback(ibtn, fbtn, data):
-    if ibtn and fbtn is None:
-        raise PreventUpdate
-    else:
-        button_clicked = ctx.triggered_id
-        data = data or {'tempo': 0, 'tempo_inicio': 0, 'tempo_final': 0}
-
-        if button_clicked == 'inicio-button':
-            data['tempo_inicio'] = data['tempo']
-            print('oi')
-            return data
-        elif button_clicked == 'final-button':
-            data['tempo_final'] = data['tempo']
-            print('oi')
-            return data
-
-
 # app.clientside_callback(
 #     """
 #     function(ibtn, fbtn, data) {
@@ -387,6 +362,9 @@ def convert_time(millisseconds):
     return "%d:%02d.%02d" % (minutes, seconds, mili)
 
 
+tempo_inicio, tempo_final = 0, 0
+
+
 # Update Graphs callback
 @app.callback(
     Output('graph_temperature', 'figure'),
@@ -408,16 +386,17 @@ def convert_time(millisseconds):
     Output('display_vel', 'value'),
     Output('display_acc', 'value'),
     Output('display_distancia', 'value'),
-    Output('current-data', 'data'),
     Input('interval-component', 'n_intervals'),
-    Input('current-data', 'data'),
+    Input('inicio-button', 'n_clicks'),
+    Input('final-button', 'n_clicks'),
     prevent_initial_call=True
 )
-def update_graphs(n, data):
+def update_graphs(n, ibtn, fbtn):
     if n is None:
         raise PreventUpdate
     else:
-        data = data or {'tempo': 0, 'tempo_inicio': 0, 'tempo_final': 0}
+        button_clicked = ctx.triggered_id
+        global tempo_final, tempo_inicio
 
         tempo = int(round(time() * 1000)) - initial_time
         temp_obj, temp_amb, RPM, VEL, capacitivo = 0, 0, 0, 0, 0
@@ -430,7 +409,6 @@ def update_graphs(n, data):
             except ValueError:
                 print("ValueError")
 
-        data['tempo'] = tempo
         Distancia = round(VEL / 3.6 + float(df["Distancia"].tail(1)), 2)  # Metros
         ACC = round(VEL - float(df["VEL_E"].tail(1)), 2)
         ACC = ACC if ACC > 0 else 0
@@ -441,18 +419,26 @@ def update_graphs(n, data):
 
         tempo_formatado = "0:00.000"
         tempo_percorrido, acc_avg, vel_avg, distancia_lap = 0, 0, 0, 0
-        if data['tempo_inicio'] != 0:
-            df_tempo = df[df["tempo"].between(data['tempo_inicio'], data['tempo'])]
+        if tempo_inicio != 0:
+            df_tempo = df[df["tempo"].between(tempo_inicio, df["tempo"].iloc[-1])]
             acc_avg = round(df_tempo["ACC"].mean(), 2)
             vel_avg = round(df_tempo["VEL_E"].mean(), 2)
             distancia_lap = round(df_tempo["Distancia"].iloc[-1] - df_tempo["Distancia"].iloc[0], 2)
             tempo_percorrido = df_tempo["tempo"].iloc[-1] - df_tempo["tempo"].iloc[0]
             tempo_formatado = convert_time(tempo_percorrido)
 
-            if data['tempo_final'] != 0:
-                data['tempo_final'] = 0
-                data['tempo_inicio'] = 0
+            if tempo_final != 0:
+                tempo_final = 0
+                tempo_inicio = 0
                 df_laps.loc[len(df_laps)] = [tempo_formatado, tempo_percorrido, acc_avg, vel_avg, distancia_lap]
+
+        if button_clicked == 'inicio-button':
+            tempo_inicio = df["tempo"].iloc[-1]
+            print('oi')
+
+        elif button_clicked == 'final-button':
+            tempo_final = df["tempo"].iloc[-1]
+            print('oi')
 
         with open(f"Arquivos_CSV/{arquivo}.csv", 'a+', newline='') as f:
             thewriter = csv.writer(f)
@@ -578,7 +564,7 @@ def update_graphs(n, data):
                 {
                     'type': 'bar',
                     'name': 'Tempo Percorrido',
-                    'y': [x/1000 for x in df_laps['tempo_lap'].tail(50)]
+                    'y': [x / 1000 for x in df_laps['tempo_lap'].tail(50)]
                 },
                 {
                     'type': 'bar',
@@ -593,7 +579,7 @@ def update_graphs(n, data):
                 {
                     'type': 'bar',
                     'name': "Distancia Percorrida",
-                    'y': [x/10 for x in df_laps['distancia_lap'].tail(50)]
+                    'y': [x / 10 for x in df_laps['distancia_lap'].tail(50)]
                 },
 
             ],
@@ -609,6 +595,7 @@ def update_graphs(n, data):
                 "plot_bgcolor": "rgb(10,10,10)"
             }
         }
+
         velocidade_text = df["VEL_E"].tail(1)
         rpm_text = df["RPM_motor"].tail(1)
         aceleracao_text = df["ACC"].tail(1)
@@ -632,7 +619,7 @@ def update_graphs(n, data):
 
     return graph_temperature, graph_velocidade, graph_RPM, graph_ACC, graph_laps, velocidade_text, rpm_text, \
            aceleracao_text, distancia_text, tanque_text, temp_text, vel_gauge, rpm_gauge, temp, tank_daq, \
-           tempo_formatado, vel_avg, acc_avg, distancia_lap, data
+           tempo_formatado, vel_avg, acc_avg, distancia_lap
 
 
 # =====================================================================
